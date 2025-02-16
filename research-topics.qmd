@@ -1,6 +1,6 @@
 ---
 title: "Research Topics"
-author: "Team name - Team member 1, Team member 2, Team member 3, Team member 4"
+author: "staRstistions - Will Lieber, Wania Iftikhar Khan, AJ Tenser, Kami Akala"
 format: pdf
 execute: 
   warning: false
@@ -10,10 +10,16 @@ editor: visual
 
 ## Research Topic 1
 
+Physical therapy outcomes depending on different approaches to doing rehabilitation exercises.
+
 \pagebreak
 
 ## Research Topic 2
 
+Mortgage rates as related to climate change over time.
+
 \pagebreak
 
 ## Research Topic 3
+
+Lead levels in water as related to incarceration rates in the area.
