@@ -38,4 +38,18 @@ This model would be most useful for banks who would benefit from the risk analyt
 
 ## Research Topic 3
 
-Lead levels in water as related to incarceration rates in the area.
+Our final research topic is to investigate lead levels in water and find how it relates to the incarceration rates in the area. This will bring together multiple datasets and allow us to find new trends and possible correlations. In future investigations, we could also incorporate other datasets on other metrics to try to find significant correlations.
+
+While each member in our group has different academic backgrounds, we all find environmental issues very important to analyze. One of the members in our group has designed their major around incarceration, and from previous research, they suggested there was a connection between the two aforementioned phenomena. Through data analysis and fitting a regression model, we hope to cement the correlation or reject its existence.
+
+There are a variety of stakeholders who may find this research interesting. One group would be town and state government who may work towards improving water quality or at least learning about possible knock-on effects of water quality. Another group are social justice advocates who could use this data to focus their demands and have data to either support or dismiss the connection. The results may also be interesting for psychologists who may be interested in framing the actions which lead to incarceration as a function of water quality.
+
+**Research Questions**
+
+1.  Is there a significant relationship between lead levels in water and incarceration?
+
+2.  How does average lead level in water supply vary by state and does this have any relationship to the per capita incarceration rate?
+
+3.  Is there an interaction effect between racial makeup in a county and incarceration rate?
+
+In order to answer these questions, we would need to access county-level data on lead levels, incarceration rates, and demographic information. It appears that lead levels are published by the EPA, incarceration rates are available through the Bureau of Justice Statistics, and demographic information through the Census database.
