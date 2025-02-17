@@ -30,6 +30,8 @@ This model would be most useful for banks who would benefit from the risk analyt
 
 3.  How do loan characteristics vary by region? This would rely on the metropolitan area variable to create groups. It would also be interesting to look at the observations outside of these areas to compare the urban/rural loan requests (especially regarding FHA/VA types which signals information about the borrower).
 
+[CFMD Data](https://www.consumerfinance.gov/data-research/hmda/historic-data/?geo=nc&records=first-lien-owner-occupied-1-4-family-records&field_descriptions=labels): this is a link to the data that we have referenced throughout this section - it contains the information about demographics and loan type. The wide range of variables and combination of both categorical and continuous variables will hopefully allow us to construct a strong model to create meaning.
+
 \pagebreak
 
 ## Research Topic 3
