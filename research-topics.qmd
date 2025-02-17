@@ -10,7 +10,9 @@ editor: visual
 
 ## Research Topic 1
 
-Physical therapy outcomes depending on different approaches to doing rehabilitation exercises.
+Our first topic of interest has to do with physical therapy outcomes depending on different approaches to doing rehabilitation exercises. While we don't currently have relevant data sets for this inquiry, we are aware there is extensive research done on ACL surgery recovery especially and that this is an area of interest in the medical community.
+
+This is of interest as one of our team members is currently in rehab for an ACL injury.
 
 \pagebreak
 
