@@ -12,7 +12,17 @@ editor: visual
 
 Our first topic of interest has to do with physical therapy outcomes depending on different approaches to doing rehabilitation exercises. While we don't currently have relevant data sets for this inquiry, we are aware there is extensive research done on ACL surgery recovery especially and that this is an area of interest in the medical community.
 
-This is of interest as one of our team members is currently in rehab for an ACL injury.
+This is of interest as one of our team members is currently in rehab for an ACL injury and it's curious to consider if there are any specific ways for the patient to increase their likelihood of a successfully regaining strength in their injured limb.
+
+Apart from our team mate, this research would be of interest to anyone currently undergoing or about to undergo the rehab process as well as physical therapist and other medical professionals. There are many different approaches to rehab to date, so the ability to investigate their success rates and potentially reveal new insight will be quite valuable.
+
+**Research Questions**
+
+1.  Is there a difference in successful return to activity timelines for individuals who undergo more rigorous versus a more gradual physical therapy regimen?
+2.  Does more conscious/intentional guarding of the injury during the rehabilitation process lead to better long term outcomes? Or is there value in allowing the injury to experience more stress?
+3.  What is the optimal frequency of attending physical therapy? Is there such a thing as over training?
+
+In order to answer these questions, large scale studies or an amalgamation of studies on individuals going through rehab for different injuries would be useful, especially if methods of rehabilitation are outlined so we can make conclusions about potential outcome differences. Seeing that Duke has a sport science clinic on campus, that could be a great place to start looking for publicly available data and studies.
 
 \pagebreak
 
