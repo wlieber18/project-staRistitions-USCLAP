@@ -12,9 +12,13 @@ editor: visual
 #| label: load-pkg-data
 library(tidyverse)
 library(tidymodels)
-# add other packages as needed
-
-# add code to load data
+library(patchwork)
+library(ggplot2)
+install.packages("psych")
+library(psych)
+install.packages("readxl") 
+library(readxl)  
+library(dplyr) 
 ```
 
 ## Introduction
@@ -23,7 +27,39 @@ library(tidymodels)
 
 ## Data description
 
-...
+```{r}
+
+California_incarceration_rate_data <- read_excel("data/California incarceration rate data.xlsx")
+
+ZIPCodeData2022_1_ <- read_excel("data/ZIPCodeData2022 (1).xlsx")
+```
+```{r}
+#renaming the columns
+California_incarceration_rate_data <- California_incarceration_rate_data %>% 
+mutate(zip_code = `California ZIP codes  `)
+
+
+ZIPCodeData2022_1_ <- ZIPCodeData2022_1_ %>% 
+mutate(zip_code = `ZIP Code`) %>% 
+  mutate(zip_code = as.numeric(zip_code))
+
+```
+```{r}
+joined_data <- full_join(California_incarceration_rate_data, ZIPCodeData2022_1_, by = "zip_code")
+
+```
+```{r}
+#make sure that the zip codes are not repeated in either dataset
+joined_data_clean <- joined_data %>% 
+  drop_na() %>% 
+  nrow() %>% 
+  print()
+```
+```{r}
+joined_data %>% 
+  nrow()
+```
+
 
 ## Exploratory data analysis
 
