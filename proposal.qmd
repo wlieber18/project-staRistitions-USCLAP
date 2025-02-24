@@ -23,7 +23,7 @@ library(dplyr)
 
 ## Introduction
 
-...
+
 
 ## Data description
 
