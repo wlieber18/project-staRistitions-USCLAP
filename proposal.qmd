@@ -27,49 +27,63 @@ library(dplyr)
 
 ```{r}
 
-California_incarceration_rate_data <- read_excel("data/California incarceration rate data.xlsx")
-ZIPCodeData2022_1_ <- read_excel("data/ZIPCodeData2022 (1).xlsx")
+ca_incarceration <- read_excel("data/California incarceration rate data.xlsx")
+ca_lead <- read_excel("data/ZIPCodeData2022 (1).xlsx")
 
 ca_demographic <- read_csv("data/demographic.csv", skip = 1)
-ca_income <- read_csv("data/income.csv")
-ca_poverty <- read_csv("data/poverty.csv")
+ca_income <- read_csv("data/income.csv", skip = 1)
 ```
 
 ```{r}
-#| eval: false
 #transforming the data
 
-ca_demographic <- read_csv("data/demographic.csv", skip = 1)
+#ca_demographic <- read_csv("data/demographic.csv", skip = 1)
 
 ca_demographic <- ca_demographic |>
-  select(!(contains("Estimate") | contains("Margin"))) |>
-  select((1:5) & (8:17) & (39:41) & 46 & 54 & 59 & 74) |>
-  mutate(`Geographic Area Name` = substr(`Geographic Area Name`, 7, 11))
+  select(!((contains("Estimate") | contains("Margin")) & !37)) |>
+  select(c(1:6, 8:17, 40, 41, 42, 47, 55, 60)) |>
+  rename_with(~ str_replace(., ".*!!", "")) |>
+  mutate(`Geographic Area Name` = substr(`Geographic Area Name`, 7, 11)) |>
+  rename(zip_code = `Geographic Area Name`) |>
+  mutate(zip_code = as.numeric(zip_code))
+
+#ca_income <- read_csv("data/income.csv", skip = 1)
+
+ca_income <- ca_income |>
+  select(c(1, 2, 25, 27)) |>
+  rename_with(~ str_replace(., ".*!!", "")) |>
+  mutate(`Geographic Area Name` = substr(`Geographic Area Name`, 7, 11)) |>
+  rename(zip_code = `Geographic Area Name`) |>
+  mutate(zip_code = as.numeric(zip_code))
 ```
 
 ```{r}
 #renaming the columns
-California_incarceration_rate_data <- California_incarceration_rate_data %>% 
+ca_incarceration <- ca_incarceration %>% 
 mutate(zip_code = `California ZIP codes  `)
 
 
-ZIPCodeData2022_1_ <- ZIPCodeData2022_1_ %>% 
+ca_lead <- ca_lead %>% 
 mutate(zip_code = `ZIP Code`) %>% 
   mutate(zip_code = as.numeric(zip_code))
 
 ```
 
 ```{r}
-joined_data <- full_join(California_incarceration_rate_data, ZIPCodeData2022_1_, by = "zip_code")
+#left_join to pare down to least observation dataset
+joined_data1 <- left_join(ca_lead, ca_incarceration, by = "zip_code")
+joined_data2 <- left_join(joined_data1, ca_demographic, by = "zip_code")
+
+joined_data <- left_join(joined_data2, ca_income, by = "zip_code")
 
 ```
 
 ```{r}
+#| echo: false
 #make sure that the zip codes are not repeated in either dataset
+#now redundant
 joined_data_clean <- joined_data %>% 
-  drop_na() %>% 
-  nrow() %>% 
-  print()
+  drop_na(zip_code)
 ```
 
 ```{r}
