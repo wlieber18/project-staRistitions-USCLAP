@@ -14,25 +14,39 @@ library(tidyverse)
 library(tidymodels)
 library(patchwork)
 library(ggplot2)
-install.packages("psych")
+#install.packages("psych")
 library(psych)
-install.packages("readxl") 
+#install.packages("readxl") 
 library(readxl)  
 library(dplyr) 
 ```
 
 ## Introduction
 
-
-
 ## Data description
 
 ```{r}
 
 California_incarceration_rate_data <- read_excel("data/California incarceration rate data.xlsx")
-
 ZIPCodeData2022_1_ <- read_excel("data/ZIPCodeData2022 (1).xlsx")
+
+ca_demographic <- read_csv("data/demographic.csv", skip = 1)
+ca_income <- read_csv("data/income.csv")
+ca_poverty <- read_csv("data/poverty.csv")
 ```
+
+```{r}
+#| eval: false
+#transforming the data
+
+ca_demographic <- read_csv("data/demographic.csv", skip = 1)
+
+ca_demographic <- ca_demographic |>
+  select(!(contains("Estimate") | contains("Margin"))) |>
+  select((1:5) & (8:17) & (39:41) & 46 & 54 & 59 & 74) |>
+  mutate(`Geographic Area Name` = substr(`Geographic Area Name`, 7, 11))
+```
+
 ```{r}
 #renaming the columns
 California_incarceration_rate_data <- California_incarceration_rate_data %>% 
@@ -44,10 +58,12 @@ mutate(zip_code = `ZIP Code`) %>%
   mutate(zip_code = as.numeric(zip_code))
 
 ```
+
 ```{r}
 joined_data <- full_join(California_incarceration_rate_data, ZIPCodeData2022_1_, by = "zip_code")
 
 ```
+
 ```{r}
 #make sure that the zip codes are not repeated in either dataset
 joined_data_clean <- joined_data %>% 
@@ -55,11 +71,11 @@ joined_data_clean <- joined_data %>%
   nrow() %>% 
   print()
 ```
+
 ```{r}
 joined_data %>% 
   nrow()
 ```
-
 
 ## Exploratory data analysis
 
