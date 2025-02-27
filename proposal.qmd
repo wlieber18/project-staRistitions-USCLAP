@@ -93,15 +93,6 @@ joined_data_clean <- joined_data |>
 ```
 
 ```{r}
-#| echo: false
-#| eval: false
-#make sure that the zip codes are not repeated in either dataset
-#now redundant
-joined_data_clean <- joined_data %>% 
-  drop_na(zip_code)
-```
-
-```{r}
 joined_data_clean %>% 
   nrow()
 ```
@@ -119,6 +110,32 @@ We also added demographic data sourced from census.gov. We added 16 columns pert
 This analysis requires the joining of several different datasets, namely the incarceration, lead, demographic, and income datasets for California. Almost all of the datasets contain the full range of CA zip codes, but the lead data has fewer observations than the other sets, so we conducted a series of left joins to the lead data to ensure that each observation has a complete range of data (which we checked and holds true). The formatting of the demographic and income data (sourced from census.gov) was, for all intents and purposes, unusable with over 360 columns in the demographic set and containing both estimates and margins of error. We pared down the sets to select only the columns that would be most relevant for this investigation, as well as created age variables that split the range in three to simplify the data. We also had to rename the columns in the census data to be intelligible and columns in the lead and incarceration sets to eliminate the capital letters, spaces, and symbols which would complicate the analysis. Our final dataset has all columns in tidy formatting and are all joined together by zip codes, each with full data for every column.
 
 ### Response Variable EDA
+
+```{r}
+#| label: response-exploration
+
+joined_data_clean |>
+  ggplot(aes(x = imprisonment_rate_per_100_000)) +
+  geom_histogram() +
+  labs(
+    title = "Distribution of imprisonment rate per 100,000 people",
+    subtitle = "by California Zip Codes",
+    x = "Imprisonment rate (per 100,000 residents)",
+    y = "Count"
+  )
+
+joined_data_clean |>
+  summarize(mean = mean(imprisonment_rate_per_100_000, na.rm = TRUE),
+            median = median(imprisonment_rate_per_100_000, na.rm = TRUE),
+            IQR = IQR(imprisonment_rate_per_100_000, na.rm = TRUE),
+            sd = sd(imprisonment_rate_per_100_000, na.rm = TRUE),
+            range = range(imprisonment_rate_per_100_000, na.rm = TRUE),
+            min = min(imprisonment_rate_per_100_000, na.rm = TRUE),
+            max = max(imprisonment_rate_per_100_000, na.rm = TRUE))
+
+```
+
+The shape of the distribution is unimodal and right skewed. There are a few possible outliers in the data - primarily in zip codes with low populations (such as 93262 which has an imprisonment rate of 4,762 per 100,000). There are 21 zip codes with imprisonment rates over 1,000 which may be possible outliers. The median of the data is 251 imprisonments per 100,000 residents, while the IQR is 245.5.
 
 ## Analysis approach
 
