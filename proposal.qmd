@@ -14,9 +14,9 @@ library(tidyverse)
 library(tidymodels)
 library(patchwork)
 library(ggplot2)
-#install.packages("psych")
+install.packages("psych")
 library(psych)
-#install.packages("readxl") 
+install.packages("readxl") 
 library(readxl)  
 library(dplyr) 
 ```
@@ -106,15 +106,19 @@ joined_data_clean %>%
   nrow()
 ```
 
+California incarceration rates comes from an organization called the prison policy initiative (https://www.prisonpolicy.org/origin/ca/2020/zipcode.html). PPI reports incarceration rate by zip code via data collected by the US Census Bureau. This data is publicly available because of new laws in California on prison gerrymandering. This data was redistricted to display number of people incarcerated in California State prisons by Peter Horton of the redistricting data hub. They publish all of their methodologies on their website. This dataset has 1803 observations. Since their data is derived from the census bureau, the data was collected through the official collection and reporting procedures of the US government. A limitation is that it does not disclose people incarcerated in federal prisons, but there are only around 12,000 California residents incarcerated in federal facilities. Comparatively, in California, 100,000 are incarcerated in state facilities (https://www.prisonpolicy.org/profiles/CA.html). All variables include zip code, city, number of people in state prison from that zip code, census population in 2020, total population 2020, and imprisonment rate per 100,000.
 
-California incarceration rates comes from an organization called the prison policy intiative (https://www.prisonpolicy.org/origin/ca/2020/zipcode.html). PPI reports incarceration rate by zip code via data collected by the US Census Bureau. This data is publically available because of new laws in california on prison gerrymandering. This data was redistricted to display number of people incarcerated in California State prisons by Peter Horton of the redistricting data hub. They publish all of their methodologies on their website. This dataset has 1803 observations. Since their data is derived from the census bureau, the data was collected through the official collection and reporting procedures of the US government. A limitation is that it does not disclose people incarcerated in federal prisons, but there are only around 12,000 california residents incarcerated in federal facilites. Comparatively, in California, 100,000 are incarcerated in state facilities (https://www.prisonpolicy.org/profiles/CA.html). All variables include zip code, city, number of people in state prison from that zip code, census population in 2020, total population 2020, and imprisonment rate per 100,000.
+Zip code lead data comes from the California Department of Public Health (CDPH). We selected "Percent of Children of with a Blood Lead Level of 3.5 or higher in descending order- 2022". This dataset has 1777 observations. Federal guidelines require that children served by Medicaid be screened for lead poisoning with a blood lead level (BLL) test at ages 12 and 24 months, and up to age 6 years if not previously tested. The CDPH collects and reports this data. All variables include zip code, postal district name, number of children under 6 with a blood lead level of 3.5 milligrams/dL or more, percent of children under 6 with a blood lead level of 3.5 milligrams/dL or more, and total number of children under 6 with a BLL level. One limitation is that this data and the other data are not from the same year. Another is that we are using blood lead level rates in children as a proxy for susceptibility to lead exposure for everyone in that zip code.
 
-Zip code lead data comes from the California Department of Public Health (CDPH). We selected "Percent of Children of with a Blood Lead Level of 3.5 or higher in descending order- 2022". This dataset has 1777 observations. Federal guidelines require that children served by Medicaid be screened for lead poisoning with a blood lead level (BLL) test at ages 12 and 24 months, and up to age 6 years if not previously tested. The CDPH collects and reports this data. All variables include zip code, postal district name, number of children under 6 with a blood lead level of 3.5 miligrams/dL or more, percent of children under 6 with a blood lead level of 3.5 miligrams/dL or more, and total number of children under 6 with a BLL level. One limitation is that this data and the other data are not from the same year. Another is that we are using blood lead level rates in children as a proxy for suceptibility to lead exposure for everyone in that zip code. 
+We also added demographic data sourced from census.gov. We added 16 columns pertaining to race, income, gender, and age in each zip code. Since these data are derived from the census bureau, the data were collected through the official collection and reporting procedures of the US government. One limitation is that these data are from the 2023 census report, which is not aligned with the lead data, which is from 2022, and the incarceration rate data, which is from 2020. \## Exploratory data analysis
 
-We also added demographic data sourced from census.gov. We added 16 columns pertaining to race, income, gender, and age in each zip code. Since these data are derived from the census bureau, the data were collected through the official collection and reporting procedures of the US government. One limitation is that these data are from the 2023 census report, which is not aligned with the lead data, which is from 2022, and the incarceration rate data, which is from 2020.
-## Exploratory data analysis
+## **Data processing**
 
-...
+### Cleaning Process
+
+This analysis requires the joining of several different datasets, namely the incarceration, lead, demographic, and income datasets for California. Almost all of the datasets contain the full range of CA zip codes, but the lead data has fewer observations than the other sets, so we conducted a series of left joins to the lead data to ensure that each observation has a complete range of data (which we checked and holds true). The formatting of the demographic and income data (sourced from census.gov) was, for all intents and purposes, unusable with over 360 columns in the demographic set and containing both estimates and margins of error. We pared down the sets to select only the columns that would be most relevant for this investigation, as well as created age variables that split the range in three to simplify the data. We also had to rename the columns in the census data to be intelligible and columns in the lead and incarceration sets to eliminate the capital letters, spaces, and symbols which would complicate the analysis. Our final dataset has all columns in tidy formatting and are all joined together by zip codes, each with full data for every column.
+
+### Response Variable EDA
 
 ## Analysis approach
 
