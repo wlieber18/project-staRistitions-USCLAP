@@ -169,4 +169,4 @@ For our project, since we are looking to make conclusions about whether water le
 
 ## Data dictionary
 
-The data dictionary can be found [here](ADD%20LINK!!!) \[Update the link and remove this note!\]
+The data dictionary can be found [here](https://docs.google.com/document/d/1V2_cDU4rO4OI9vozs7axEP8WcCMFHKzlVxyABm-8kiU/edit?usp=sharing).
