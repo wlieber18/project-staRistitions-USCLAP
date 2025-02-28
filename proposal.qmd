@@ -8,6 +8,18 @@ execute:
 editor: visual
 ---
 
+## Introduction
+
+From our recent systematic review of studies we have explored the potential effects of lead exposure on brain development in children and adults. Various studies highlight the detrimental effects of lead on different brain regions, noticeable in a decrease in executive control and cognitive control, thereby affecting memory, mood, behavior and comprehension skills. Exposure to lead during the developmental years of children causes irreversible damage. 
+
+Studies in the past have shown a strong correlation between aggressive behavior, criminal tendencies and exposure to lead. Talayero et al. (2023)^1^ highlights a strong association between lead exposure during childhood and criminal tendencies during adulthood. Exposure to lead can be through various means, including water, which is what we’ve chosen to investigate. Our research topic inquires about lead levels in water and if it relates to the incarceration rates of a specified area.
+
+This research topic has important societal implications, namely the complicated intersection of crime, environmental racism, and potentially more. It’s an ever relevant question today and we hope to come to meaningful conclusions by the end of our analysis. Our initial hypothesis is that there is a positive relationship between water lead levels and the rate of incarceration.
+
+1\. [The association between lead exposure and crime: A systematic review](https://pmc.ncbi.nlm.nih.gov/articles/PMC10393136/#pgph.0002177.ref019)
+
+## Data description
+
 ```{r}
 #| label: load-pkg-data
 library(tidyverse)
@@ -20,10 +32,6 @@ install.packages("readxl")
 library(readxl)  
 library(dplyr) 
 ```
-
-## Introduction
-
-## Data description
 
 ```{r}
 
@@ -47,9 +55,16 @@ ca_demographic <- ca_demographic |>
 ca_demographic <- ca_demographic |>
   mutate(`Geographic Area Name` = substr(`Geographic Area Name`, 7, 11)) |>
   mutate(across(!1, as.numeric)) |>
-  mutate(`0_to_19` = `Under 5 years` + `5 to 9 years` + `10 to 14 years` + `15 to 19 years`,
-         `20_to_44` = `20 to 24 years` + `25 to 34 years` + `35 to 44 years`,
-         `45_to_64` = `45 to 54 years` + `55 to 59 years` + `60 to 64 years`) |>
+  mutate(`0_to_19` = 
+           `Under 5 years` + `5 to 9 years` + 
+           `10 to 14 years` + `15 to 19 years`,
+         
+         `20_to_44` = 
+           `20 to 24 years` + `25 to 34 years` +
+          `35 to 44 years`,
+         
+         `45_to_64` = 
+           `45 to 54 years` + `55 to 59 years` + `60 to 64 years`) |>
   select(!7:16) |>
   rename(zip_code = `Geographic Area Name`)
 
@@ -140,8 +155,8 @@ This analysis requires the joining of several different datasets, namely the inc
 ```{r}
 #| label: response-exploration
 
-joined_data_clean |>
-  ggplot(aes(x = imprisonment_rate_per_100_000)) +
+bll_data |>
+  ggplot(aes(x = imprisonment_rt)) +
   geom_histogram() +
   labs(
     title = "Distribution of imprisonment rate per 100,000 people",
@@ -150,14 +165,14 @@ joined_data_clean |>
     y = "Count"
   )
 
-joined_data_clean |>
-  summarize(mean = mean(imprisonment_rate_per_100_000, na.rm = TRUE),
-            median = median(imprisonment_rate_per_100_000, na.rm = TRUE),
-            IQR = IQR(imprisonment_rate_per_100_000, na.rm = TRUE),
-            sd = sd(imprisonment_rate_per_100_000, na.rm = TRUE),
-            range = range(imprisonment_rate_per_100_000, na.rm = TRUE),
-            min = min(imprisonment_rate_per_100_000, na.rm = TRUE),
-            max = max(imprisonment_rate_per_100_000, na.rm = TRUE))
+bll_data |>
+  summarize(mean = mean(imprisonment_rt, na.rm = TRUE),
+            median = median(imprisonment_rt, na.rm = TRUE),
+            IQR = IQR(imprisonment_rt, na.rm = TRUE),
+            sd = sd(imprisonment_rt, na.rm = TRUE),
+            range = range(imprisonment_rt, na.rm = TRUE),
+            min = min(imprisonment_rt, na.rm = TRUE),
+            max = max(imprisonment_rt, na.rm = TRUE))
 
 ```
 
