@@ -148,8 +148,8 @@ bll_data <- bll_data |>
 ```
 
 ```{r}
-bll_data %>% 
-  nrow()
+nrow(bll_data)
+ncol(bll_data)
 ```
 
 ### Response Variable EDA
@@ -172,7 +172,6 @@ bll_data |>
             median = median(imprisonment_rt, na.rm = TRUE),
             IQR = IQR(imprisonment_rt, na.rm = TRUE),
             sd = sd(imprisonment_rt, na.rm = TRUE),
-            range = range(imprisonment_rt, na.rm = TRUE),
             min = min(imprisonment_rt, na.rm = TRUE),
             max = max(imprisonment_rt, na.rm = TRUE))
 
@@ -186,4 +185,4 @@ For our project, since we are looking to make conclusions about whether water le
 
 ## Data dictionary
 
-The data dictionary can be found [here](https://docs.google.com/document/d/1V2_cDU4rO4OI9vozs7axEP8WcCMFHKzlVxyABm-8kiU/edit?usp=sharing).
+The data dictionary can be found [here](https://docs.google.com/document/d/1V2_cDU4rO4OI9vozs7axEP8WcCMFHKzlVxyABm-8kiU/edit?usp=sharing) as well as in the README.
