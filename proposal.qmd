@@ -49,8 +49,9 @@ library(dplyr)
 
 ```{r}
 
-ca_incarceration <- read_excel("data/California incarceration rate data.xlsx")
-ca_lead <- read_excel("data/ZIPCodeData2022 (1).xlsx")
+ca_incarceration <- read_excel("data/census_tract_prison.xlsx")
+ca_lead <- read_excel("data/New_census_tract_lead_level.xlsx")
+
 
 ca_demographic <- read_csv("data/demographic.csv", skip = 1)
 ca_income <- read_csv("data/income.csv", skip = 1)
@@ -59,49 +60,62 @@ ca_income <- read_csv("data/income.csv", skip = 1)
 ```{r}
 #transforming the data
 
-#ca_demographic <- read_csv("data/demographic.csv", skip = 1)
+#demographics
+ca_demographic <- ca_demographic |>
+  select(c(1:3, 27, 75, 164:176, 240:245)) |>
+  rename_with(~ str_replace(., ".*!!", "")) |>
+  filter(Geography != "0400000US06")
 
 ca_demographic <- ca_demographic |>
-  select(!((contains("Estimate") | contains("Margin")) & !37)) |>
-  select(c(1:6, 8:17, 40, 41, 42, 47, 55, 60)) |>
-  rename_with(~ str_replace(., ".*!!", ""))
-
-ca_demographic <- ca_demographic |>
-  mutate(`Geographic Area Name` = substr(`Geographic Area Name`, 7, 11)) |>
-  mutate(across(!1, as.numeric)) |>
+  mutate(`Geography` = substr(`Geography`, 10, 20)) |>
+  mutate(across(!(1:2), as.numeric)) |>
   mutate(`0_to_19` = 
            `Under 5 years` + `5 to 9 years` + 
            `10 to 14 years` + `15 to 19 years`,
          
          `20_to_44` = 
-           `20 to 24 years` + `25 to 34 years` +
-          `35 to 44 years`,
+           `20 to 24 years` + `25 to 29 years` +
+           `30 to 34 years` + `35 to 39 years` +
+           `40 to 44 years`,
          
          `45_to_64` = 
-           `45 to 54 years` + `55 to 59 years` + `60 to 64 years`) |>
-  select(!7:16) |>
-  rename(zip_code = `Geographic Area Name`)
+           `45 to 49 years` + `50 to 54 years` + 
+           `55 to 59 years` + `60 to 64 years`
+         ) |>
+  mutate(perc_male = `Male population` / `Total population` * 100) |>
+  select(!6:18) |>
+  rename(census_tract = "Geography") |>
+  rename(median_age = "Both sexes")
 
-#ca_income <- read_csv("data/income.csv", skip = 1)
+
+#income
+ca_income <- ca_income |>
+  select(c(1, 2, 25)) |>
+  rename_with(~ str_replace(., ".*!!", "")) |>
+  filter(Geography != "0400000US06")
 
 ca_income <- ca_income |>
-  select(c(1, 2, 25, 27)) |>
-  rename_with(~ str_replace(., ".*!!", "")) |>
-  mutate(`Geographic Area Name` = substr(`Geographic Area Name`, 7, 11)) |>
-  mutate(across(!1, as.numeric)) |>
-  rename(zip_code = `Geographic Area Name`)
-```
+  mutate(`Geography` = substr(`Geography`, 10, 20)) |>
+  mutate(across(!(1:2), as.numeric)) |>
+  rename(census_tract = "Geography")
 
-```{r}
-#renaming the columns
+
+#incarceration
 ca_incarceration <- ca_incarceration |>
-  rename(zip_code = `California ZIP codes  `) |>
-  mutate(zip_code = as.numeric(zip_code))
+  select(c(1, 2, 6)) |>
+  mutate(fips = paste0("0", fips)) |>
+  rename(census_tract = `fips`) |>
+  mutate(across(!(1:2), as.numeric))
 
 
+#lead
 ca_lead <- ca_lead |>
-  rename(zip_code = `ZIP Code`) |>
-  mutate(zip_code = as.numeric(zip_code))
+  select(!1) |>
+  mutate(`Census Tract` = paste0("0", `Census Tract`)) |>
+  rename(census_tract = `Census Tract`) |>
+  mutate(across(!1, as.numeric)) |>
+  mutate(`Percent of children under 6 with a BLL of 3.5 µg/dL or greater` = 
+           `Percent of children under 6 with a BLL of 3.5 µg/dL or greater` * 100)
 
 ```
 
@@ -109,42 +123,34 @@ ca_lead <- ca_lead |>
 #left_join to pare down to least observation dataset
 #lot of data cleaning
 
-joined_data1 <- left_join(ca_lead, ca_incarceration, by = "zip_code")
-joined_data2 <- left_join(joined_data1, ca_demographic, by = "zip_code")
+joined_data1 <- left_join(ca_lead, ca_incarceration, by = "census_tract")
+joined_data2 <- left_join(joined_data1, ca_demographic, by = "census_tract")
 
-joined_data <- left_join(joined_data2, ca_income, by = "zip_code")
+joined_data <- left_join(joined_data2, ca_income, by = "census_tract")
 
+#post-join cleaning
 bll_data <- joined_data |>
   janitor::clean_names() |>
-  select(!c(geography_y, city, census_population_2020)) |>
-  rename(city = postal_district_name) |>
-  rename(geography = geography_x) |>
+  select(!c(geographic_area_name_x, geographic_area_name_y)) |>
   rename(num_bll_indicator = 
            number_of_children_under_6_with_a_bll_of_3_5_mg_d_l_or_greater) |>
   rename(perc_bll_indicator =
            percent_of_children_under_6_with_a_bll_of_3_5_mg_d_l_or_greater) |>
   rename(num_bll = 
            total_number_of_children_under_6_with_a_bll) |>
-  rename(num_prison = 
-           number_of_people_in_state_prison_from_each_zip_code_2020) |>
-  rename(other_race = some_other_race) |>
-  rename(age_0_to_19 = x0_to_19) |>
-  rename(age_20_to_44 = x20_to_44) |>
-  rename(age_45_to_64 = x45_to_64) |>
-  rename(total_pop_2020 = total_population_2020) |>
   rename(imprisonment_rt = imprisonment_rate_per_100_000) |>
-  rename(median_age = median_age_years) |>
+  rename(tract_name = ca_census_tracts) |>
+  rename(other_race = some_other_race) |>
   rename(black = black_or_african_american) |>
   rename(native_am = american_indian_and_alaska_native) |>
   rename(pac_islander = native_hawaiian_and_other_pacific_islander) |>
+  rename(age_0_to_19 = x0_to_19) |>
+  rename(age_20_to_44 = x20_to_44) |>
+  rename(age_45_to_64 = x45_to_64) |>
   rename(med_income = median_income_dollars) |>
-  rename(mean_income = mean_income_dollars)
-```
+  rename(total_pop_2020 = total_population)
 
-```{r}
-#dropping extra cols
-bll_data <- bll_data |>
-  select(-c(geography, total_population))
+#DROP ANY ADDITIONAL BELOW HERE
 ```
 
 ```{r}
