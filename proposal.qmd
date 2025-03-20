@@ -194,6 +194,7 @@ The shape of the distribution is unimodal and right skewed. There are a few poss
 #| label: predictor-exploration
 
 bll_data |>
+  filter(num_bll != 0) %>% 
   ggplot(aes(x = perc_bll_indicator)) +
   geom_histogram() +
   labs(
@@ -239,9 +240,9 @@ bll_data |>
 ```{r}
 #| label: bivariate-exploration
 
-
-
-ggplot(bll_data, aes(x = imprisonment_rt, y = perc_bll_indicator)) +
+bll_data %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = imprisonment_rt, y = perc_bll_indicator)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
