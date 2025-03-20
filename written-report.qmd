@@ -26,6 +26,98 @@ library(psych)
 install.packages("readxl") 
 library(readxl)  
 library(dplyr)
+
+ca_incarceration <- read_excel("data/census_tract_prison.xlsx")
+ca_lead <- read_excel("data/New_census_tract_lead_level.xlsx")
+
+ca_demographic <- read_csv("data/demographic.csv", skip = 1)
+ca_income <- read_csv("data/income.csv", skip = 1)
+
+#demographics
+ca_demographic <- ca_demographic |>
+  select(c(1:3, 27, 75, 164:176, 240:245)) |>
+  rename_with(~ str_replace(., ".*!!", "")) |>
+  filter(Geography != "0400000US06")
+
+ca_demographic <- ca_demographic |>
+  mutate(`Geography` = substr(`Geography`, 10, 20)) |>
+  mutate(across(!(1:2), as.numeric)) |>
+  mutate(`0_to_19` = 
+           `Under 5 years` + `5 to 9 years` + 
+           `10 to 14 years` + `15 to 19 years`,
+         
+         `20_to_44` = 
+           `20 to 24 years` + `25 to 29 years` +
+           `30 to 34 years` + `35 to 39 years` +
+           `40 to 44 years`,
+         
+         `45_to_64` = 
+           `45 to 49 years` + `50 to 54 years` + 
+           `55 to 59 years` + `60 to 64 years`
+         ) |>
+  mutate(perc_male = `Male population` / `Total population` * 100) |>
+  select(!6:18) |>
+  rename(census_tract = "Geography") |>
+  rename(median_age = "Both sexes")
+
+
+#income
+ca_income <- ca_income |>
+  select(c(1, 2, 25)) |>
+  rename_with(~ str_replace(., ".*!!", "")) |>
+  filter(Geography != "0400000US06")
+
+ca_income <- ca_income |>
+  mutate(`Geography` = substr(`Geography`, 10, 20)) |>
+  mutate(across(!(1:2), as.numeric)) |>
+  rename(census_tract = "Geography")
+
+
+#incarceration
+ca_incarceration <- ca_incarceration |>
+  select(c(1, 2, 6)) |>
+  mutate(fips = paste0("0", fips)) |>
+  rename(census_tract = `fips`) |>
+  mutate(across(!(1:2), as.numeric))
+
+
+#lead
+ca_lead <- ca_lead |>
+  select(!1) |>
+  mutate(`Census Tract` = paste0("0", `Census Tract`)) |>
+  rename(census_tract = `Census Tract`) |>
+  mutate(across(!1, as.numeric)) |>
+  mutate(`Percent of children under 6 with a BLL of 3.5 µg/dL or greater` = 
+           `Percent of children under 6 with a BLL of 3.5 µg/dL or greater` * 100)
+
+#joining
+joined_data1 <- left_join(ca_lead, ca_incarceration, by = "census_tract")
+joined_data2 <- left_join(joined_data1, ca_demographic, by = "census_tract")
+
+joined_data <- left_join(joined_data2, ca_income, by = "census_tract")
+
+#post-join cleaning
+bll_data <- joined_data |>
+  janitor::clean_names() |>
+  select(!c(geographic_area_name_x, geographic_area_name_y)) |>
+  rename(num_bll_indicator = 
+           number_of_children_under_6_with_a_bll_of_3_5_mg_d_l_or_greater) |>
+  rename(perc_bll_indicator =
+           percent_of_children_under_6_with_a_bll_of_3_5_mg_d_l_or_greater) |>
+  rename(num_bll = 
+           total_number_of_children_under_6_with_a_bll) |>
+  rename(imprisonment_rt = imprisonment_rate_per_100_000) |>
+  rename(tract_name = ca_census_tracts) |>
+  rename(other_race = some_other_race) |>
+  rename(black = black_or_african_american) |>
+  rename(native_am = american_indian_and_alaska_native) |>
+  rename(pac_islander = native_hawaiian_and_other_pacific_islander) |>
+  rename(age_0_to_19 = x0_to_19) |>
+  rename(age_20_to_44 = x20_to_44) |>
+  rename(age_45_to_64 = x45_to_64) |>
+  rename(med_income = median_income_dollars) |>
+  rename(total_pop_2020 = total_population)
+
 ```
 
 ### **Introduction**
@@ -45,6 +137,64 @@ Our Data and variables
 We've chosen to create our dataframe from a variety of census datasets relating to California in 2020.
 
 **eda**:
+
+```{r}
+#| label: carc-dist
+
+quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
+
+bll_data |>
+  ggplot(aes(x = imprisonment_rt)) +
+  geom_histogram() +
+  scale_x_continuous(limits = c(0, 1250)) +
+  labs(
+    title = "Distribution of Imprisionment Rates in CA",
+    subtitle = "per 100,000 by Census Tract",
+    x = "Imprisonment Rate (per 100,000)",
+    y = "Count",
+    caption = "Capturing ~99% of data"
+  )
+
+```
+
+```{r}
+#| label: lead-dist
+
+quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
+
+bll_data |>
+  ggplot(aes(x = perc_bll_indicator)) +
+  geom_histogram() +
+  scale_x_continuous(limits = c(0, 12.5)) +
+  scale_y_continuous(limits = c(0, 1000)) +
+  labs(
+    title = "Distribution of Children Under 6 with High Blood Lead Levels in CA",
+    subtitle = "by Census Tract",
+    x = "Children under 6 with a BLL of 3.5 µg/dL or greater (%)",
+    y = "Count",
+    caption = "Capturing ~99% of data"
+  )
+```
+
+```{r}
+#| label: income
+
+quantile(bll_data$med_income, 0.99, na.rm = TRUE)
+
+bll_data |>
+  ggplot(aes(x = med_income)) +
+  geom_histogram() +
+  scale_x_continuous(limits = c(0, 200000)) +
+  scale_y_continuous(limits = c(0, 1000)) +
+  labs(
+    title = "Distribution of Median Income in CA",
+    subtitle = "by Census Tract",
+    x = "Median Income",
+    y = "Count",
+    caption = "Capturing ~99% of data"
+  )
+
+```
 
 check distribution of our predictors and response -\> what they look like
 
