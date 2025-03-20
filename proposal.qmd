@@ -44,7 +44,8 @@ install.packages("psych")
 library(psych)
 install.packages("readxl") 
 library(readxl)  
-library(dplyr) 
+library(dplyr)
+library(GGally)
 ```
 
 ```{r}
@@ -158,7 +159,7 @@ nrow(bll_data)
 ncol(bll_data)
 ```
 
-### Response Variable EDA
+### Univariate Response Variable EDA
 
 ```{r}
 #| label: response-exploration
@@ -181,9 +182,91 @@ bll_data |>
             min = min(imprisonment_rt, na.rm = TRUE),
             max = max(imprisonment_rt, na.rm = TRUE))
 
+
+
 ```
 
 The shape of the distribution is unimodal and right skewed. There are a few possible outliers in the data - primarily in zip codes with low populations (such as 93262 which has an imprisonment rate of 4,762 per 100,000). There are 21 zip codes with imprisonment rates over 1,000 which may be possible outliers. The median of the data is 251 imprisonments per 100,000 residents, while the IQR is 245.5.
+
+### Univariate Predictor Variable EDA
+
+```{r}
+#| label: predictor-exploration
+
+bll_data |>
+  ggplot(aes(x = perc_bll_indicator)) +
+  geom_histogram() +
+  labs(
+    title = "Distribution of percent of census tract with high blood lead levels",
+    subtitle = "Blood lead level > 3.5µg/dL",
+    x = "percent of census tract with high BLL",
+    y = "Count"
+  )
+
+bll_data |>
+  summarize(mean = mean(perc_bll_indicator, na.rm = TRUE),
+            median = median(perc_bll_indicator, na.rm = TRUE),
+            IQR = IQR(perc_bll_indicator, na.rm = TRUE),
+            sd = sd(perc_bll_indicator, na.rm = TRUE),
+            min = min(perc_bll_indicator, na.rm = TRUE),
+            max = max(perc_bll_indicator, na.rm = TRUE))
+
+```
+```{r}
+#| label: predictor-exploration2
+
+bll_data |>
+  ggplot(aes(x = med_income)) +
+  geom_histogram() +
+  labs(
+    title = "Distribution of median annual income by census tract",
+    subtitle = "",
+    x = "median annual income (USD)",
+    y = "Count"
+  )
+
+bll_data |>
+  summarize(mean = mean(med_income, na.rm = TRUE),
+            median = median(med_income, na.rm = TRUE),
+            IQR = IQR(med_income, na.rm = TRUE),
+            sd = sd(med_income, na.rm = TRUE),
+            min = min(med_income, na.rm = TRUE),
+            max = max(med_income, na.rm = TRUE))
+
+```
+### Bivariate Response Variable EDA
+
+```{r}
+#| label: bivariate-exploration
+
+
+
+ggplot(bll_data, aes(x = imprisonment_rt, y = perc_bll_indicator)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
+       x = "Imprisonment Rate",
+       y = "Percentage with BLL Indicator") +
+  theme_minimal()
+
+ggplot(bll_data, aes(x = imprisonment_rt, y = med_income)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Imprisonment Rate vs. Median Income",
+       x = "Imprisonment Rate",
+       y = "Median Income") +
+  theme_minimal()
+
+ggplot(bll_data, aes(x = imprisonment_rt, y = black)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Imprisonment Rate vs. Black Population Percentage",
+       x = "Imprisonment Rate",
+       y = "Percentage Black Population") +
+  theme_minimal()
+
+```
+
 
 ## Analysis approach
 
