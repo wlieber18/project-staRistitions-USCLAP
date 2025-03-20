@@ -1,6 +1,7 @@
 ---
-title: "Your project title"
-author: "Team Name: Team member 1, Team member 2, Team member 3, Team member 4"
+title: "Lead in the Water: The Effects of Blood Lead Levels on Incareration Rates"
+subtitle: An Analysis
+author: "staRstistions - Will Lieber, Wania Iftikhar Khan, AJ Tenser, Kami Akala"
 date: "Update date"
 format: pdf
 execute: 
@@ -12,10 +13,44 @@ editor: visual
 
 ```{r}
 #| label: load packages and data
+#| echo: FALSE
+#| warning: false
+#| message: false
 
+library(tidyverse)
+library(tidymodels)
+library(patchwork)
+library(ggplot2)
+install.packages("psych")
+library(psych)
+install.packages("readxl") 
+library(readxl)  
+library(dplyr)
 ```
 
-Your written report goes here!
+### **Introduction**
+
+Could exposure to lead increase one's likelihood of going to prison? After our team's recent systematic review of studies, we have explored the potential effects of lead exposure on brain development in children and adults. Various studies highlight the detrimental effects of lead on different brain regions, noticeable in a decrease in executive control and cognitive control, thereby affecting memory, mood, behavior and comprehension skills. Such exposure to lead during the developmental years of children causes irreversible damage, the effects of which can be seen later on in life. 
+
+Studies in the past have shown a strong correlation between aggressive behavior, criminal tendencies and exposure to lead. Talayero et al. (2023)^1^ highlights a strong association between lead exposure during childhood and criminal tendencies during adulthood. One can be exposed to lead through different means, including water, which is what we’ve chosen to investigate. Our research topic inquires about whether a relationship exists between a specified area's water lead levels and its incarceration rates, while also considering potential effects of other demographic factors.
+
+This research topic has important societal implications, namely the complicated intersection of crime, environmental racism, and more. It’s an ever relevant question today and we hope to come to meaningful conclusions by the end of our analysis. Our initial hypothesis is that there is a positive relationship between water lead levels and the rate of incarceration with the existence of other interaction effects from things such as race and income.
+
+1\. [The association between lead exposure and crime: A systematic review](https://pmc.ncbi.nlm.nih.gov/articles/PMC10393136/#pgph.0002177.ref019)
+
+### **Exploratory data analysis**
+
+Our Data and variables
+
+We've chosen to create our dataframe from a variety of census datasets relating to California in 2020.
+
+**eda**:
+
+check distribution of our predictors and response -\> what they look like
+
+check relationship between predictors and response -\> do things look linear
+
+check relationship between predictors -\> multicolin we need to address?
 
 ::: callout-important
 Before you submit, make sure your code chunks are turned off with `echo: false` and there are no warnings or messages with `warning: false` and `message: false` in the YAML.
