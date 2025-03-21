@@ -160,9 +160,17 @@ bll_data |>
   )
 
 carc_med <- median(bll_data$imprisonment_rt, na.rm = TRUE)
+
+bll_data |>
+  summarize(mean = mean(imprisonment_rt, na.rm = TRUE),
+            median = median(imprisonment_rt, na.rm = TRUE),
+            IQR = IQR(imprisonment_rt, na.rm = TRUE),
+            sd = sd(imprisonment_rt, na.rm = TRUE),
+            min = min(imprisonment_rt, na.rm = TRUE),
+            max = max(imprisonment_rt, na.rm = TRUE))
 ```
 
-The shape of the imprisonment rate distribution is unimodal that is skewed to the right with a median incarceration rate of `r carc_med` out of 100,000. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
+After removing extreme outliers (the top 2% incarceration rates- some of these may ultimately be removed because the census tract has an extremely low population ex. ~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
 
 **Blood Lead Levels**
 
@@ -186,9 +194,17 @@ bll_data |>
   )
 
 bll_med <- median(bll_data$perc_bll_indicator, na.rm = TRUE)
+
+bll_data |>
+  summarize(mean = mean(med_income, na.rm = TRUE),
+            median = median(med_income, na.rm = TRUE),
+            IQR = IQR(med_income, na.rm = TRUE),
+            sd = sd(med_income, na.rm = TRUE),
+            min = min(med_income, na.rm = TRUE),
+            max = max(med_income, na.rm = TRUE))
 ```
 
-Similar to our imprisonment rate distrubution, the shape of the BLL distribution is unimodal that is skewed to the right with a median rate of `r bll_med`. This doesn't appear surprising - there are fewer census tracts with particularly high BLL rates among children.
+There are 94 census tracts that tested zero blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, outside of census tracts that tested zero people, there is a large concentration of census tracts that have a percent blood level indicator of 0 (1899 observations). While these should probably be included in the final analysis, removing these produces for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is 1.7 and the IQR is 2.57.
 
 **Income**
 
@@ -212,6 +228,15 @@ bll_data |>
   )
 
 inc_med <- median(bll_data$med_income, na.rm = TRUE)
+
+bll_data |>
+  summarize(mean = mean(med_income, na.rm = TRUE),
+            median = median(med_income, na.rm = TRUE),
+            IQR = IQR(med_income, na.rm = TRUE),
+            sd = sd(med_income, na.rm = TRUE),
+            min = min(med_income, na.rm = TRUE),
+            max = max(med_income, na.rm = TRUE))
+
 ```
 
 The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med`. This doesn't appear surprising - more median incomes are concentrated towards the left.
