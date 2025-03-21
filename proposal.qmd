@@ -293,13 +293,15 @@ filter(num_bll != 0) %>%
 ggplot(aes(x = imprisonment_rt, y = age_0_to_19)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Imprisonment Rate vs. Black Population Percentage",
+  labs(title = "Imprisonment Rate vs. percentage age 0-19",
        x = "Imprisonment Rate",
        y = "Percentage of population age 0-19") +
   theme_minimal()  
 
 
 ```
+Imprisonment rate and percentage of census tract with a high blood lead level has a generally positive correlation. Imprisonment rate and median income has a generally negative correlation. Imprisonment rate and percentage of population aged 0-19 in the census tract has a generally positive correlation.
+
 ### Interaction Effect EDA
 ```{r}
 #| label: interaction-effects
