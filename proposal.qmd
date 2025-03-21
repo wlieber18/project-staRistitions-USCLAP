@@ -40,8 +40,6 @@ library(tidyverse)
 library(tidymodels)
 library(patchwork)
 library(ggplot2)
-install.packages("psych")
-library(psych)
 install.packages("readxl") 
 library(readxl)  
 library(dplyr)
@@ -165,6 +163,7 @@ ncol(bll_data)
 #| label: response-exploration
 
 bll_data |>
+  filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) |>
   ggplot(aes(x = imprisonment_rt)) +
   geom_histogram() +
   labs(
@@ -186,7 +185,7 @@ bll_data |>
 
 ```
 
-The shape of the distribution is unimodal and right skewed. There are a few possible outliers in the data - primarily in zip codes with low populations (such as 93262 which has an imprisonment rate of 4,762 per 100,000). There are 21 zip codes with imprisonment rates over 1,000 which may be possible outliers. The median of the data is 251 imprisonments per 100,000 residents, while the IQR is 245.5.
+After removing extreme outliers (the top 2% incarceration rates- some of these may ultimately be removed because the census tract has an extremely low population ex. ~3 people), the shape of the distribution is unimodal and right skewed. There are a few possible outliers in the data - primarily in zip codes with low populations (such as 93262 which has an imprisonment rate of 4,762 per 100,000). There are 21 zip codes with imprisonment rates over 1,000 which may be possible outliers. The median of the data is 251 imprisonments per 100,000 residents, while the IQR is 245.5.
 
 ### Univariate Predictor Variable EDA
 
@@ -194,17 +193,20 @@ The shape of the distribution is unimodal and right skewed. There are a few poss
 #| label: predictor-exploration
 
 bll_data |>
+  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) |>
   filter(num_bll != 0) %>% 
+  filter(perc_bll_indicator != 0) %>% 
   ggplot(aes(x = perc_bll_indicator)) +
   geom_histogram() +
   labs(
     title = "Distribution of percent of census tract with high blood lead levels",
     subtitle = "Blood lead level > 3.5µg/dL",
-    x = "percent of census tract with high BLL",
+    x = "percent of population tested with high BLL",
     y = "Count"
   )
 
 bll_data |>
+  filter(num_bll != 0) %>% 
   summarize(mean = mean(perc_bll_indicator, na.rm = TRUE),
             median = median(perc_bll_indicator, na.rm = TRUE),
             IQR = IQR(perc_bll_indicator, na.rm = TRUE),
@@ -212,7 +214,16 @@ bll_data |>
             min = min(perc_bll_indicator, na.rm = TRUE),
             max = max(perc_bll_indicator, na.rm = TRUE))
 
+#percent blood level over 1.5 the IQR
+bll_data %>% 
+  filter(perc_bll_indicator > 1.5*2.599239)
+
+bll_data %>% 
+  filter(perc_bll_indicator == 0) %>% 
+  nrow()
+
 ```
+There are 94 census tracts that tested zero blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, outside of census tracts that tested zero people, there is a large concentration of census tracts that have a percent blood level indicator of 0 (1899 observations). While these should probably be included in the final analysis, removing these produces for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is 1.7 and the IQR is 2.57.
 
 ```{r}
 #| label: predictor-exploration2
@@ -235,14 +246,25 @@ bll_data |>
             min = min(med_income, na.rm = TRUE),
             max = max(med_income, na.rm = TRUE))
 
+bll_data %>% 
+  filter(med_income > (1.5*50440)) %>% 
+  nrow()
+
+bll_data %>% 
+  filter(med_income < (1.5*50440)) %>% 
+  nrow()
 ```
+The distribution of median annual income is right skewed and centered at 77225.
 
 ### Bivariate Response Variable EDA
 
 ```{r}
 #| label: bivariate-exploration
 
+
 bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
 filter(num_bll != 0) %>% 
 ggplot(aes(x = imprisonment_rt, y = perc_bll_indicator)) +
   geom_point(alpha = 0.6) +
@@ -252,7 +274,11 @@ ggplot(aes(x = imprisonment_rt, y = perc_bll_indicator)) +
        y = "Percentage with BLL Indicator") +
   theme_minimal()
 
-ggplot(bll_data, aes(x = imprisonment_rt, y = med_income)) +
+bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = imprisonment_rt, y = med_income)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Imprisonment Rate vs. Median Income",
@@ -260,15 +286,47 @@ ggplot(bll_data, aes(x = imprisonment_rt, y = med_income)) +
        y = "Median Income") +
   theme_minimal()
 
-ggplot(bll_data, aes(x = imprisonment_rt, y = black)) +
+bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = imprisonment_rt, y = age_0_to_19)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Imprisonment Rate vs. Black Population Percentage",
        x = "Imprisonment Rate",
-       y = "Percentage Black Population") +
-  theme_minimal()
+       y = "Percentage of population age 0-19") +
+  theme_minimal()  
+
 
 ```
+### Interaction Effect EDA
+```{r}
+#| label: interaction-effects
+
+bll_data <- bll_data %>%
+  mutate(POC_other = black + native_am + other_race, 
+         race_categorical = ifelse(POC_other > median(POC_other, na.rm = TRUE), 
+                                   "above_median_poc_other", 
+                                   "below_median_poc_other"))
+
+bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Relationship between income and imprisonment",
+    subtitle = "By median percentages of Black, Native American, and other races",
+    x = "Median Income",
+    y = "Imprisonment Rate",
+    color = "Above or below median"
+  ) +
+  theme_minimal()
+```
+When comparing the relationship between median income and imprisonment rate, it appears that generally they have a negative correlation. This graph suggests there could be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We  created a categorical variable for the percentage of the census tract population that is black, native american, or "other race" that is categorically above or below the median in the data. The relationship between imprisonment rate and median income appears more negatively correlated when categorically above the median census tract population percentage of black, native american, and other_race. This supports that there could be an interaction effect between race and income.
 
 ## Analysis approach
 
