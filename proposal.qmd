@@ -213,6 +213,7 @@ bll_data |>
             max = max(perc_bll_indicator, na.rm = TRUE))
 
 ```
+
 ```{r}
 #| label: predictor-exploration2
 
@@ -235,6 +236,7 @@ bll_data |>
             max = max(med_income, na.rm = TRUE))
 
 ```
+
 ### Bivariate Response Variable EDA
 
 ```{r}
@@ -267,7 +269,6 @@ ggplot(bll_data, aes(x = imprisonment_rt, y = black)) +
   theme_minimal()
 
 ```
-
 
 ## Analysis approach
 

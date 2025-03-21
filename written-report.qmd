@@ -120,7 +120,7 @@ bll_data <- joined_data |>
 
 ```
 
-### **Introduction**
+## **Introduction**
 
 Could exposure to lead increase one's likelihood of going to prison? After our team's recent systematic review of studies, we have explored the potential effects of lead exposure on brain development in children and adults. Various studies highlight the detrimental effects of lead on different brain regions, noticeable in a decrease in executive control and cognitive control, thereby affecting memory, mood, behavior and comprehension skills. Such exposure to lead during the developmental years of children causes irreversible damage, the effects of which can be seen later on in life. 
 
@@ -130,32 +130,41 @@ This research topic has important societal implications, namely the complicated 
 
 1\. [The association between lead exposure and crime: A systematic review](https://pmc.ncbi.nlm.nih.gov/articles/PMC10393136/#pgph.0002177.ref019)
 
-### **Exploratory data analysis**
+## **Exploratory Data Analysis**
 
-Our Data and variables
+------------------------------------------------------------------------
 
-We've chosen to create our dataframe from a variety of census datasets relating to California in 2020.
+### **Our Data**
 
-**eda**:
+We've chosen to create our dataframe from a variety of census data relating to California in 2020. Our data looks at different California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. For our analysis, we are particularly focused on `perc_bll_indicator`, `med_income`, our age and race variables and how well they can predict `imprisonment_rt`.
+
+### **Data Exploration**
+
+**Incarceration Rate**
 
 ```{r}
 #| label: carc-dist
 
-quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
+carc_limit <-quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = imprisonment_rt)) +
-  geom_histogram() +
+  geom_histogram(color = "black", fill = "lightblue") +
   scale_x_continuous(limits = c(0, 1250)) +
   labs(
-    title = "Distribution of Imprisionment Rates in CA",
+    title = "Distribution of Imprisonment Rates in CA",
     subtitle = "per 100,000 by Census Tract",
     x = "Imprisonment Rate (per 100,000)",
     y = "Count",
     caption = "Capturing ~99% of data"
   )
 
+carc_med <- median(bll_data$imprisonment_rt, na.rm = TRUE)
 ```
+
+The shape of the imprisonment rate distribution is unimodal that is skewed to the right with a median incarceration rate of `r carc_med` out of 100,000. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
+
+**Blood Lead Levels**
 
 ```{r}
 #| label: lead-dist
@@ -164,43 +173,97 @@ quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = perc_bll_indicator)) +
-  geom_histogram() +
+  geom_histogram(color = "black", fill = "lightblue") +
   scale_x_continuous(limits = c(0, 12.5)) +
   scale_y_continuous(limits = c(0, 1000)) +
   labs(
-    title = "Distribution of Children Under 6 with High Blood Lead Levels in CA",
+    title = "Distribution of Children Under 6 
+    with High Blood Lead Levels in CA",
     subtitle = "by Census Tract",
-    x = "Children under 6 with a BLL of 3.5 µg/dL or greater (%)",
+    x = "Children under 6 with a BLL ≥3.5 µg/dL (%)",
     y = "Count",
     caption = "Capturing ~99% of data"
   )
+
+bll_med <- median(bll_data$perc_bll_indicator, na.rm = TRUE)
 ```
 
+Similar to our imprisonment rate distrubution, the shape of the BLL distribution is unimodal that is skewed to the right with a median rate of `r bll_med`. This doesn't appear surprising - there are fewer census tracts with particularly high BLL rates among children.
+
+**Income**
+
 ```{r}
+
 #| label: income
 
 quantile(bll_data$med_income, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = med_income)) +
-  geom_histogram() +
+  geom_histogram(color = "black", fill = "lightblue") +
   scale_x_continuous(limits = c(0, 200000)) +
   scale_y_continuous(limits = c(0, 1000)) +
   labs(
     title = "Distribution of Median Income in CA",
     subtitle = "by Census Tract",
-    x = "Median Income",
+    x = "Median Income ($)",
     y = "Count",
     caption = "Capturing ~99% of data"
   )
 
+inc_med <- median(bll_data$med_income, na.rm = TRUE)
 ```
 
-check distribution of our predictors and response -\> what they look like
+The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med`. This doesn't appear surprising - more median incomes are concentrated towards the left.
 
-check relationship between predictors and response -\> do things look linear
+**BLL and Imprisonment Rate**
 
-check relationship between predictors -\> multicolin we need to address?
+```{r}
+#| label: bll-prison
+
+quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
+
+bll_data |>
+  filter(perc_bll_indicator != 0) |>
+  ggplot(aes(x = perc_bll_indicator, y = imprisonment_rt)) +
+  geom_point(size = 0.4, alpha = 0.3, color = "blue4") +
+  scale_x_continuous(limits = c(0, 30)) +
+  scale_y_continuous(limits = c(0, 1500)) +
+  labs(
+    x = "Imprisonment Rate (per 100,000)",
+    y = "Children under 6 with a BLL ≥3.5 µg/dL (%)",
+    title = "Imprisonment Rate vs BLL Rate In CA",
+    subtitle = "by Census Tract",
+    caption = "Axis Limits Fixed for Clarity"
+  )
+```
+
+From the above graph, the nature of the relationship between blood level and imprisonment rates isn't clearly defined.
+
+**Income and Imprisonment Rate**
+
+```{r}
+#| label: inc-prison
+
+bll_data |>
+  filter(perc_bll_indicator != 0) |>
+  ggplot(aes(x = med_income, y = imprisonment_rt)) +
+  geom_point(size = 0.4, alpha = 0.3, color = "blue4") +
+  scale_y_continuous(limits = c(0, 2000)) +
+  labs(
+    x = "Imprisonment Rate (per 100,000)",
+    y = "Median Income ($)",
+    title = "Imprisonment Rate vs Median Income In CA",
+    subtitle = "by Census Tract",
+    caption = "Capturing ~95% of data along x- and y-axis"
+  )
+```
+
+From the above graph, it seems there is a potentially nonlinear relationship between median income and imprisonment rates in census tracts.
+
+**Potential Interactions**
+
+For future analysis, we plan to explore if race and age can have added effects on our predictor variables. However, that will require further careful transformations of our current dataset.
 
 ::: callout-important
 Before you submit, make sure your code chunks are turned off with `echo: false` and there are no warnings or messages with `warning: false` and `message: false` in the YAML.
