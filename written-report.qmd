@@ -216,55 +216,77 @@ inc_med <- median(bll_data$med_income, na.rm = TRUE)
 
 The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med`. This doesn't appear surprising - more median incomes are concentrated towards the left.
 
-**BLL and Imprisonment Rate**
-
 ```{r}
-#| label: bll-prison
+#| label: bivariate-exploration
+#| Message: False
+#| Warning: False
 
-quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
 
-bll_data |>
-  filter(perc_bll_indicator != 0) |>
-  ggplot(aes(x = perc_bll_indicator, y = imprisonment_rt)) +
-  geom_point(size = 0.4, alpha = 0.3, color = "blue4") +
-  scale_x_continuous(limits = c(0, 30)) +
-  scale_y_continuous(limits = c(0, 1500)) +
-  labs(
-    x = "Imprisonment Rate (per 100,000)",
-    y = "Children under 6 with a BLL ≥3.5 µg/dL (%)",
-    title = "Imprisonment Rate vs BLL Rate In CA",
-    subtitle = "by Census Tract",
-    caption = "Axis Limits Fixed for Clarity"
-  )
+bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = imprisonment_rt, y = perc_bll_indicator)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
+       x = "Imprisonment Rate",
+       y = "Percentage with BLL Indicator") +
+  theme_minimal()
+
+bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = imprisonment_rt, y = med_income)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Imprisonment Rate vs. Median Income",
+       x = "Imprisonment Rate",
+       y = "Median Income") +
+  theme_minimal()
+
+bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = imprisonment_rt, y = age_0_to_19)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Imprisonment Rate vs. percentage age 0-19",
+       x = "Imprisonment Rate",
+       y = "Percentage of population age 0-19") +
+  theme_minimal()  
+
+
 ```
-
-From the above graph, the nature of the relationship between blood level and imprisonment rates isn't clearly defined.
-
-**Income and Imprisonment Rate**
-
-```{r}
-#| label: inc-prison
-
-bll_data |>
-  filter(perc_bll_indicator != 0) |>
-  ggplot(aes(x = med_income, y = imprisonment_rt)) +
-  geom_point(size = 0.4, alpha = 0.3, color = "blue4") +
-  scale_y_continuous(limits = c(0, 2000)) +
-  labs(
-    x = "Imprisonment Rate (per 100,000)",
-    y = "Median Income ($)",
-    title = "Imprisonment Rate vs Median Income In CA",
-    subtitle = "by Census Tract",
-    caption = "Capturing ~95% of data along x- and y-axis"
-  )
-```
-
-From the above graph, it seems there is a potentially nonlinear relationship between median income and imprisonment rates in census tracts.
+Imprisonment rate and percentage of census tract with a high blood lead level has a generally positive correlation. Imprisonment rate and median income has a generally negative correlation. Imprisonment rate and percentage of population aged 0-19 in the census tract has a generally positive correlation.
 
 **Potential Interactions**
 
-For future analysis, we plan to explore if race and age can have added effects on our predictor variables. However, that will require further careful transformations of our current dataset.
+```{r}
+#| label: interaction-effects
 
-::: callout-important
-Before you submit, make sure your code chunks are turned off with `echo: false` and there are no warnings or messages with `warning: false` and `message: false` in the YAML.
-:::
+bll_data <- bll_data %>%
+  mutate(POC_other = black + native_am + other_race, 
+         race_categorical = ifelse(POC_other > median(POC_other, na.rm = TRUE), 
+                                   "above_median_poc_other", 
+                                   "below_median_poc_other"))
+
+bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Relationship between income and imprisonment",
+    subtitle = "By median percentages of Black, Native American, and other races",
+    x = "Median Income",
+    y = "Imprisonment Rate",
+    color = "Above or below median"
+  ) +
+  theme_minimal()
+```
+When comparing the relationship between median income and imprisonment rate, it appears that generally they have a negative correlation. This graph suggests there could be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We  created a categorical variable for the percentage of the census tract population that is black, native american, or "other race" that is categorically above or below the median in the data. The relationship between imprisonment rate and median income appears more negatively correlated when categorically above the median census tract population percentage of black, native american, and other_race. This supports that there could be an interaction effect between race and income.
