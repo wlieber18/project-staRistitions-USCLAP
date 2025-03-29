@@ -21,11 +21,13 @@ library(tidyverse)
 library(tidymodels)
 library(patchwork)
 library(ggplot2)
-install.packages("psych")
-library(psych)
 install.packages("readxl") 
 library(readxl)  
 library(dplyr)
+library(knitr)
+library(rms)
+library(readr)
+library(GGally)
 
 ca_incarceration <- read_excel("data/census_tract_prison.xlsx")
 ca_lead <- read_excel("data/New_census_tract_lead_level.xlsx")
@@ -145,9 +147,9 @@ We've chosen to create our dataframe from a variety of census data relating to C
 ```{r}
 #| label: carc-dist
 
-carc_limit <-quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
+carc_limit <- quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
 
-bll_data |>
+bll_data %>%
   ggplot(aes(x = imprisonment_rt)) +
   geom_histogram(color = "black", fill = "lightblue") +
   scale_x_continuous(limits = c(0, 1250)) +
@@ -161,6 +163,10 @@ bll_data |>
 
 carc_med <- median(bll_data$imprisonment_rt, na.rm = TRUE)
 
+#add summary statistics?
+```
+```{reval=FALSE}
+#I don't know what the problem with this is
 bll_data |>
   summarize(mean = mean(imprisonment_rt, na.rm = TRUE),
             median = median(imprisonment_rt, na.rm = TRUE),
@@ -169,6 +175,7 @@ bll_data |>
             min = min(imprisonment_rt, na.rm = TRUE),
             max = max(imprisonment_rt, na.rm = TRUE))
 ```
+
 
 After removing extreme outliers (the top 2% incarceration rates- some of these may ultimately be removed because the census tract has an extremely low population ex. ~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
 
@@ -194,14 +201,17 @@ bll_data |>
   )
 
 bll_med <- median(bll_data$perc_bll_indicator, na.rm = TRUE)
+```
 
+```{reval=FALSE}
+#I don't know what the problem with this is
 bll_data |>
-  summarize(mean = mean(med_income, na.rm = TRUE),
-            median = median(med_income, na.rm = TRUE),
-            IQR = IQR(med_income, na.rm = TRUE),
-            sd = sd(med_income, na.rm = TRUE),
-            min = min(med_income, na.rm = TRUE),
-            max = max(med_income, na.rm = TRUE))
+  summarize(mean = mean(perc_bll_indicator, na.rm = TRUE),
+            median = median(perc_bll_indicator, na.rm = TRUE),
+            IQR = IQR(perc_bll_indicator, na.rm = TRUE),
+            sd = sd(perc_bll_indicator, na.rm = TRUE),
+            min = min(perc_bll_indicator, na.rm = TRUE),
+            max = max(perc_bll_indicator, na.rm = TRUE))
 ```
 
 There are 94 census tracts that tested zero blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, outside of census tracts that tested zero people, there is a large concentration of census tracts that have a percent blood level indicator of 0 (1899 observations). While these should probably be included in the final analysis, removing these produces for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is 1.7 and the IQR is 2.57.
@@ -228,6 +238,8 @@ bll_data |>
   )
 
 inc_med <- median(bll_data$med_income, na.rm = TRUE)
+```
+```{reval=FALSE}
 
 bll_data |>
   summarize(mean = mean(med_income, na.rm = TRUE),
@@ -314,4 +326,90 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
   ) +
   theme_minimal()
 ```
+
 When comparing the relationship between median income and imprisonment rate, it appears that generally they have a negative correlation. This graph suggests there could be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We  created a categorical variable for the percentage of the census tract population that is black, native american, or "other race" that is categorically above or below the median in the data. The relationship between imprisonment rate and median income appears more negatively correlated when categorically above the median census tract population percentage of black, native american, and other_race. This supports that there could be an interaction effect between race and income.
+
+**Checking Initial Modelling Conditions**
+```{r}
+#| label: intial-conditions
+library(knitr)
+
+#filtering data points where num_bll = 0
+bll_data_model <- bll_data %>% 
+  filter(num_bll != 0)
+
+bll_full_model <- lm(imprisonment_rt ~ perc_bll_indicator + POC_other + med_income + median_age + perc_male + med_income * POC_other, data = bll_data_model) 
+
+tidy(bll_full_model) %>% 
+kable(digits = 3)
+
+set.seed(210)
+
+full_model_aug <- augment(bll_full_model)
+
+#there is one point with a residual so large the graph is not readable if we keep it. Filtering it out.
+full_model_aug |>
+  filter(.rownames != 2421) %>% 
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Residuals vs Fitted Values",
+    x = "Fitted",
+    y = "Residuals"
+  )
+
+vif_fm <- vif(bll_full_model)
+vif_fm
+
+#There does not appear to be too much multicollinearity.
+
+```
+1. Normality condition can be relaxed.
+2. Linearity condition not satisfied. Points not randomly scattered around the x = 0 line.
+3. Constant variance condition not satisfied. Points fan out across the x = 0 line.
+4. Independence condition also may not be satisfied. Census tracts next to each other could be more likely to have similar incarceration rates or blood lead levels.
+```{r}
+#| label: linearity?
+#Now going to check for linearity between variables to see if we need to transform any.
+
+bll_data_model %>% 
+  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+ select(imprisonment_rt, perc_bll_indicator, med_income, median_age) %>%
+ ggpairs()
+```
+```{r}
+#| label: log_transformation
+#used +1 to avoid log(0) issues? Idk that was new for me and not sure we need to keep it.
+bll_data_model <- bll_data_model %>%
+  mutate(
+    log_med_income = log(med_income + 1),       
+    log_imprisonment_rt = log(imprisonment_rt + 1) 
+  )
+
+log_model <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male, data = bll_data_model)
+
+log_model_aug <- augment(log_model)
+
+log_model_aug |>
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Residuals vs Fitted Values",
+    x = "Fitted",
+    y = "Residuals"
+  )
+
+
+vif_fm_log <- vif(log_model)
+vif_fm_log
+
+```
+The residual plot looks way better except for that one stripe of residuals. I am not sure what is causing that. The VIF values are awesome and super low too. Ignoring the stripe that would violate our other conditions, I am going to try a stepwise model selection. 
+
+The stripe could be due to census tracts next to each other influencing each other? This could be a good graph to show in class.
+
+
