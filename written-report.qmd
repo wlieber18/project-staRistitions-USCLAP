@@ -29,6 +29,7 @@ library(rms)
 library(readr)
 library(GGally)
 
+
 ca_incarceration <- read_excel("data/census_tract_prison.xlsx")
 ca_lead <- read_excel("data/New_census_tract_lead_level.xlsx")
 
@@ -411,5 +412,24 @@ vif_fm_log
 The residual plot looks way better except for that one stripe of residuals. I am not sure what is causing that. The VIF values are awesome and super low too. Ignoring the stripe that would violate our other conditions, I am going to try a stepwise model selection. 
 
 The stripe could be due to census tracts next to each other influencing each other? This could be a good graph to show in class.
+
+```{r}
+#| label: model-selection
+
+library(MASS)
+
+
+stepwise_model_mass <- stepAIC(bll_full_model, direction = "both", trace = 1)
+
+
+summary(stepwise_model_mass)
+
+
+library(broom)
+tidy(stepwise_model_mass) %>%
+  kable(digits = 3)
+
+```
+Interestingly, the lead predictor was removed through stepwise selection, perhaps indicating that it is not useful here.
 
 
