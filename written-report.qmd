@@ -331,6 +331,17 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
 
 When comparing the relationship between median income and imprisonment rate, it appears that generally they have a negative correlation. This graph suggests there could be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a categorical variable for the percentage of the census tract population that is black, native american, or "other race" that is categorically above or below the median in the data. The relationship between imprisonment rate and median income appears more negatively correlated when categorically above the median census tract population percentage of black, native american, and other_race. This supports that there could be an interaction effect between race and income.
 
+**Splitting the Data**
+
+We are concerned about spatial correlation, so we will split the data 75/25 to minimize this effect.
+
+```{r}
+#| label: splitting
+
+
+
+```
+
 **Checking Initial Modelling Conditions**
 
 ```{r}
