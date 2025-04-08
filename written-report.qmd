@@ -29,7 +29,6 @@ library(rms)
 library(readr)
 library(GGally)
 
-
 ca_incarceration <- read_excel("data/census_tract_prison.xlsx")
 ca_lead <- read_excel("data/New_census_tract_lead_level.xlsx")
 
@@ -45,12 +44,15 @@ ca_demographic <- ca_demographic |>
 ca_demographic <- ca_demographic |>
   mutate(`Geography` = substr(`Geography`, 10, 20)) |>
   mutate(across(!(1:2), as.numeric)) |>
-  mutate(`0_to_19` = 
+  mutate(`0_to_14` = 
            `Under 5 years` + `5 to 9 years` + 
-           `10 to 14 years` + `15 to 19 years`,
+           `10 to 14 years`,
          
-         `20_to_44` = 
-           `20 to 24 years` + `25 to 29 years` +
+         `15_to_29` =
+           `15 to 19 years` + `20 to 24 years` +
+           `25 to 29 years`,
+         
+         `30_to_44` = 
            `30 to 34 years` + `35 to 39 years` +
            `40 to 44 years`,
          
@@ -115,8 +117,9 @@ bll_data <- joined_data |>
   rename(black = black_or_african_american) |>
   rename(native_am = american_indian_and_alaska_native) |>
   rename(pac_islander = native_hawaiian_and_other_pacific_islander) |>
-  rename(age_0_to_19 = x0_to_19) |>
-  rename(age_20_to_44 = x20_to_44) |>
+  rename(age_0_to_14 = x0_to_14) |>
+  rename(age_15_to_29 = x15_to_29) |>
+  rename(age_30_to_44 = x30_to_44) |>
   rename(age_45_to_64 = x45_to_64) |>
   rename(med_income = median_income_dollars) |>
   rename(total_pop_2020 = total_population)
@@ -254,6 +257,10 @@ bll_data |>
 
 The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med`. This doesn't appear surprising - more median incomes are concentrated towards the left.
 
+**Spatial Distribution**
+
+![Spatial Distribution of BLL in California](data/Layout.png)
+
 ```{r}
 #| label: bivariate-exploration
 #| Message: False
@@ -288,18 +295,18 @@ bll_data %>%
 filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
 filter(num_bll != 0) %>% 
-ggplot(aes(x = age_0_to_19, y = imprisonment_rt)) +
+ggplot(aes(x = age_15_to_29, y = imprisonment_rt)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Imprisonment Rate vs. percentage age 0-19",
+  labs(title = "Imprisonment Rate vs. percentage age 15-29",
        y = "Imprisonment Rate",
-       x = "Percentage of population age 0-19") +
+       x = "Percentage of population age 15-29") +
   theme_minimal()  
 
 
 ```
 
-Imprisonment rate and percentage of census tract with a high blood lead level has a generally positive correlation. Imprisonment rate and median income has a generally negative correlation. Imprisonment rate and percentage of population aged 0-19 in the census tract has a generally positive correlation.
+Imprisonment rate and percentage of census tract with a high blood lead level has a generally positive correlation. Imprisonment rate and median income has a generally negative correlation. Imprisonment rate and percentage of population aged 0-19 in the census tract has a generally positive correlation. CHANGED TO 15TO29
 
 **Potential Interactions**
 
@@ -338,7 +345,9 @@ We are concerned about spatial correlation, so we will split the data 75/25 to m
 ```{r}
 #| label: splitting
 
+set.seed(210)
 
+bll_sample <- sample_frac(bll_data, 0.2)
 
 ```
 
