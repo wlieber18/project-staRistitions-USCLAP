@@ -348,6 +348,7 @@ We are concerned about spatial correlation, so we will split the data 75/25 to m
 set.seed(210)
 
 bll_sample <- sample_frac(bll_data, 0.2)
+bll_testing <- anti_join(bll_data, bll_sample)
 
 ```
 
