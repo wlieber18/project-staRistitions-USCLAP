@@ -2,7 +2,7 @@
 title: "Lead in the Water: The Effects of Blood Lead Levels on Incareration Rates"
 subtitle: An Analysis
 author: "staRstistions - Will Lieber, Wania Iftikhar Khan, AJ Tenser, Kami Akala"
-date: "Update date"
+date: "April 10 2025"
 format: pdf
 execute: 
   warning: false
@@ -123,22 +123,19 @@ bll_data <- joined_data |>
   rename(age_45_to_64 = x45_to_64) |>
   rename(med_income = median_income_dollars) |>
   rename(total_pop_2020 = total_population)
-
 ```
 
 ## **Introduction**
 
-Could exposure to lead increase one's likelihood of going to prison? After our team's recent systematic review of studies, we have explored the potential effects of lead exposure on brain development in children and adults. Various studies highlight the detrimental effects of lead on different brain regions, noticeable in a decrease in executive control and cognitive control, thereby affecting memory, mood, behavior and comprehension skills. Such exposure to lead during the developmental years of children causes irreversible damage, the effects of which can be seen later on in life. 
+Could exposure to lead increase one's likelihood of going to prison? After our team's systematic review of studies, we have explored the potential effects of lead exposure on brain development in children and adults. Various existing studies highlight the detrimental effects of lead on different brain regions, noticeable in a decrease in executive control and cognitive control, thereby affecting memory, mood, behavior and comprehension skills. Such exposure to lead during the developmental years of children causes irreversible damage, the effects of which can be seen later on in life. 
 
-Studies in the past have shown a strong correlation between aggressive behavior, criminal tendencies and exposure to lead. Talayero et al. (2023)^1^ highlights a strong association between lead exposure during childhood and criminal tendencies during adulthood. One can be exposed to lead through different means, including water, which is what we’ve chosen to investigate. Our research topic inquires about whether a relationship exists between a specified area's water lead levels and its incarceration rates, while also considering potential effects of other demographic factors.
+Studies in the past, such as one conducted by Talayero et al. (2023)^1^, have highlighted a strong association between lead exposure during childhood and criminal tendencies during adulthood. One can be exposed to lead through different means, including water, which is the medium which we’ve chosen to investigate. Our research topic inquires about whether a relationship exists between a specified area's water lead levels and its incarceration rates, while also considering potential confounding effects of other demographic factors.
 
-This research topic has important societal implications, namely the complicated intersection of crime, environmental racism, and more. It’s an ever relevant question today and we hope to come to meaningful conclusions by the end of our analysis. Our initial hypothesis is that there is a positive relationship between water lead levels and the rate of incarceration with the existence of other interaction effects from things such as race and income.
+This research topic has important societal implications, namely the complicated intersection of crime, environmental racism, and more. It’s an ever relevant question today and we hope to come to meaningful conclusions by the end of our analysis. Our initial hypothesis is that there is a positive relationship between water lead levels and the rate of incarceration with the existence of other interaction effects from things such as race and income. However, we acknowledge the intricate combination of social and institutional factors that increases one's likelihood of incarceration and are understand the possibility for inconclusive findings with the focus on lead exposure.
 
 1\. [The association between lead exposure and crime: A systematic review](https://pmc.ncbi.nlm.nih.gov/articles/PMC10393136/#pgph.0002177.ref019)
 
 ## **Exploratory Data Analysis**
-
-------------------------------------------------------------------------
 
 ### **Our Data**
 
@@ -155,7 +152,7 @@ carc_limit <- quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
 
 bll_data %>%
   ggplot(aes(x = imprisonment_rt)) +
-  geom_histogram(color = "black", fill = "lightblue") +
+  geom_histogram(color = "black", fill = "lightblue4") +
   scale_x_continuous(limits = c(0, 1250)) +
   labs(
     title = "Distribution of Imprisonment Rates in CA",
@@ -163,25 +160,14 @@ bll_data %>%
     x = "Imprisonment Rate (per 100,000)",
     y = "Count",
     caption = "Capturing ~99% of data"
-  )
+  ) +
+  theme_classic()
 
 carc_med <- median(bll_data$imprisonment_rt, na.rm = TRUE)
-
-#add summary statistics?
+carc_iqr <- IQR(bll_data$imprisonment_rt, na.rm = TRUE)
 ```
 
-``` {reval="FALSE"}
-#I don't know what the problem with this is
-bll_data |>
-  summarize(mean = mean(imprisonment_rt, na.rm = TRUE),
-            median = median(imprisonment_rt, na.rm = TRUE),
-            IQR = IQR(imprisonment_rt, na.rm = TRUE),
-            sd = sd(imprisonment_rt, na.rm = TRUE),
-            min = min(imprisonment_rt, na.rm = TRUE),
-            max = max(imprisonment_rt, na.rm = TRUE))
-```
-
-After removing extreme outliers (the top 2% incarceration rates- some of these may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
+After removing extreme outliers (the top 1% incarceration rates - some may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000 with an IQR of `r carc_iqr`. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
 
 **Blood Lead Levels**
 
@@ -192,7 +178,7 @@ quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = perc_bll_indicator)) +
-  geom_histogram(color = "black", fill = "lightblue") +
+  geom_histogram(color = "black", fill = "lightblue4") +
   scale_x_continuous(limits = c(0, 12.5)) +
   scale_y_continuous(limits = c(0, 1000)) +
   labs(
@@ -202,23 +188,14 @@ bll_data |>
     x = "Children under 6 with a BLL ≥3.5 µg/dL (%)",
     y = "Count",
     caption = "Capturing ~99% of data"
-  )
+  ) +
+  theme_classic()
 
 bll_med <- median(bll_data$perc_bll_indicator, na.rm = TRUE)
+bll_iqr <- IQR(bll_data$bll_indicator, na.rm = TRUE)
 ```
 
-``` {reval="FALSE"}
-#I don't know what the problem with this is
-bll_data |>
-  summarize(mean = mean(perc_bll_indicator, na.rm = TRUE),
-            median = median(perc_bll_indicator, na.rm = TRUE),
-            IQR = IQR(perc_bll_indicator, na.rm = TRUE),
-            sd = sd(perc_bll_indicator, na.rm = TRUE),
-            min = min(perc_bll_indicator, na.rm = TRUE),
-            max = max(perc_bll_indicator, na.rm = TRUE))
-```
-
-There are 94 census tracts that tested zero blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, outside of census tracts that tested zero people, there is a large concentration of census tracts that have a percent blood level indicator of 0 (1899 observations). While these should probably be included in the final analysis, removing these produces for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is 1.7 and the IQR is 2.57.
+There are 94 census tracts that didn't test blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, there is a large concentration of census tracts that have a percent blood level indicator of 0 (1899 observations). While these should probably be included in the final analysis, removing these for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is `r bll_med` and the IQR is `r bll_iqr`.
 
 **Income**
 
@@ -230,7 +207,7 @@ quantile(bll_data$med_income, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = med_income)) +
-  geom_histogram(color = "black", fill = "lightblue") +
+  geom_histogram(color = "black", fill = "lightblue4") +
   scale_x_continuous(limits = c(0, 200000)) +
   scale_y_continuous(limits = c(0, 1000)) +
   labs(
@@ -239,27 +216,19 @@ bll_data |>
     x = "Median Income ($)",
     y = "Count",
     caption = "Capturing ~99% of data"
-  )
+  ) + theme_classic()
 
 inc_med <- median(bll_data$med_income, na.rm = TRUE)
+inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 ```
 
-``` {reval="FALSE"}
-
-bll_data |>
-  summarize(mean = mean(med_income, na.rm = TRUE),
-            median = median(med_income, na.rm = TRUE),
-            IQR = IQR(med_income, na.rm = TRUE),
-            sd = sd(med_income, na.rm = TRUE),
-            min = min(med_income, na.rm = TRUE),
-            max = max(med_income, na.rm = TRUE))
-```
-
-The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med`. This doesn't appear surprising - more median incomes are concentrated towards the left.
+The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r_inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
 
 **Spatial Distribution**
 
-![Spatial Distribution of BLL in California](data/Layout.png)
+![Spatial Distribution of BLL in California](data/Layout.png){width="200"}
+
+Especially since census tracts can be extremely small, we'd have to account for spatial dependence in our analysis.
 
 ```{r}
 #| label: bivariate-exploration
@@ -271,42 +240,49 @@ bll_data %>%
 filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
 filter(num_bll != 0) %>% 
+filter(perc_bll_indicator != 0) %>%
+  
 ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = FALSE) +
+  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
+  geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
        y = "Imprisonment Rate",
-       x = "Percentage with BLL Indicator") +
-  theme_minimal()
+       x = "Percentage with BLL Indicator",
+       caption = "Filtering out tracts who either had perc_bll_indicatr = 0% or that tested 0 people") +
+  theme_classic()
+
+
 
 bll_data %>% 
 filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
 filter(num_bll != 0) %>% 
+  
 ggplot(aes(y = imprisonment_rt, x = med_income)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = FALSE) +
+  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
+  geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. Median Income",
        y = "Imprisonment Rate",
        x = "Median Income") +
-  theme_minimal()
+  theme_classic()
+
+
 
 bll_data %>% 
 filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
 filter(num_bll != 0) %>% 
+  
 ggplot(aes(x = age_15_to_29, y = imprisonment_rt)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = FALSE) +
+  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
+  geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. percentage age 15-29",
        y = "Imprisonment Rate",
        x = "Percentage of population age 15-29") +
-  theme_minimal()  
-
-
+  theme_classic()  
 ```
 
-Imprisonment rate and percentage of census tract with a high blood lead level has a generally positive correlation. Imprisonment rate and median income has a generally negative correlation. Imprisonment rate and percentage of population aged 0-19 in the census tract has a generally positive correlation. CHANGED TO 15TO29
+Imprisonment rate and the percentage of a census tract with a high blll has a generally positive correlation. Imprisonment rate and median income has a generally negative correlation. Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation.
 
 **Potential Interactions**
 
