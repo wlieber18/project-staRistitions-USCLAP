@@ -322,15 +322,16 @@ When comparing the relationship between median income and imprisonment rate, it 
 
 **Splitting the Data**
 
-We are concerned about spatial correlation, so we will split the data 75/25 to minimize this effect.
+We are concerned about spatial correlation, so we will split the data 80/20 to minimize this effect.
 
 ```{r}
 #| label: splitting
 
 set.seed(210)
 
-bll_sample <- sample_frac(bll_data, 0.2)
-bll_testing <- anti_join(bll_data, bll_sample)
+data_split <- initial_split(bll_data, prop = 0.80)
+bll_train <- training(data_split)
+bll_test  <- testing(data_split)
 
 ```
 
@@ -341,10 +342,10 @@ bll_testing <- anti_join(bll_data, bll_sample)
 library(knitr)
 
 #filtering data points where num_bll = 0
-bll_data_model <- bll_data %>% 
+bll_data_modeltrain <- bll_train %>% 
   filter(num_bll != 0)
 
-bll_full_model <- lm(imprisonment_rt ~ perc_bll_indicator + POC_other + med_income + median_age + perc_male + med_income * POC_other, data = bll_data_model) 
+bll_full_model <- lm(imprisonment_rt ~ perc_bll_indicator + POC_other + med_income + median_age + perc_male + med_income * POC_other, data = bll_data_modeltrain) 
 
 tidy(bll_full_model) %>% 
 kable(digits = 3)
@@ -356,13 +357,14 @@ full_model_aug <- augment(bll_full_model)
 #there is one point with a residual so large the graph is not readable if we keep it. Filtering it out.
 full_model_aug |>
   filter(.rownames != 2421) %>% 
-  ggplot(aes(x = .fitted, y = .resid)) +
+  filter(.std.resid < 80) %>% 
+  ggplot(aes(x = .fitted, y = .std.resid)) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(
     title = "Residuals vs Fitted Values",
     x = "Fitted",
-    y = "Residuals"
+    y = "Standardized Residuals"
   )
 
 vif_fm <- vif(bll_full_model)
@@ -381,7 +383,7 @@ vif_fm
 #| label: linearity?
 #Now going to check for linearity between variables to see if we need to transform any.
 
-bll_data_model %>% 
+bll_data_modeltrain %>% 
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
  select(imprisonment_rt, perc_bll_indicator, med_income, median_age) %>%
@@ -391,25 +393,26 @@ filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>%
 ```{r}
 #| label: log_transformation
 #used +1 to avoid log(0) issues? Idk that was new for me and not sure we need to keep it.
-bll_data_model <- bll_data_model %>%
+bll_data_modeltrain2 <- bll_train %>%
   mutate(
     log_med_income = log(med_income + 1),       
     log_imprisonment_rt = log(imprisonment_rt + 1) 
-  )
+  ) %>% 
+  filter(imprisonment_rt != 0)
 
 log_model <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
-                POC_other + median_age + perc_male, data = bll_data_model)
+                POC_other + median_age + perc_male, data = bll_data_modeltrain2)
 
 log_model_aug <- augment(log_model)
 
 log_model_aug |>
-  ggplot(aes(x = .fitted, y = .resid)) +
+  ggplot(aes(x = .fitted, y = .std.resid)) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   labs(
-    title = "Residuals vs Fitted Values",
+    title = "Standardized Residuals vs Fitted Values",
     x = "Fitted",
-    y = "Residuals"
+    y = "Standardized Residuals"
   )
 
 
