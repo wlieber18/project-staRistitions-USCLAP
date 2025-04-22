@@ -169,12 +169,14 @@ carc_iqr <- IQR(bll_data$imprisonment_rt, na.rm = TRUE)
 
 After removing extreme outliers (the top 1% incarceration rates - some may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000 with an IQR of `r carc_iqr`. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
 
+\pagebreak
+
 **Blood Lead Levels**
 
 ```{r}
 #| label: lead-dist
 
-quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
+bll_limit <- quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = perc_bll_indicator)) +
@@ -197,13 +199,15 @@ bll_iqr <- IQR(bll_data$bll_indicator, na.rm = TRUE)
 
 There are 94 census tracts that didn't test blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, there is a large concentration of census tracts that have a percent blood level indicator of 0 (1899 observations). While these should probably be included in the final analysis, removing these for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is `r bll_med` and the IQR is `r bll_iqr`.
 
+\pagebreak
+
 **Income**
 
 ```{r}
 
 #| label: income
 
-quantile(bll_data$med_income, 0.99, na.rm = TRUE)
+inc_limit <- quantile(bll_data$med_income, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = med_income)) +
@@ -224,6 +228,8 @@ inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 
 The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r_inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
 
+\pagebreak
+
 **Spatial Distribution**
 
 ![Spatial Distribution of BLL in California](data/Layout.png){width="200"}
@@ -236,12 +242,11 @@ Especially since census tracts can be extremely small, we'd have to account for 
 #| Warning: False
 
 
-bll_data %>% 
+ggprison <- bll_data %>% 
 filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
 filter(num_bll != 0) %>% 
 filter(perc_bll_indicator != 0) %>%
-  
 ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
   geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
   geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
@@ -253,11 +258,10 @@ ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
 
 
 
-bll_data %>% 
+ggincome <- bll_data %>% 
 filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
 filter(num_bll != 0) %>% 
-  
 ggplot(aes(y = imprisonment_rt, x = med_income)) +
   geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
   geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
@@ -268,11 +272,10 @@ ggplot(aes(y = imprisonment_rt, x = med_income)) +
 
 
 
-bll_data %>% 
+ggage<- bll_data %>% 
 filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
 filter(num_bll != 0) %>% 
-  
 ggplot(aes(x = age_15_to_29, y = imprisonment_rt)) +
   geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
   geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
@@ -280,6 +283,9 @@ ggplot(aes(x = age_15_to_29, y = imprisonment_rt)) +
        y = "Imprisonment Rate",
        x = "Percentage of population age 15-29") +
   theme_classic()  
+
+ggprison + ggage
+ggincome
 ```
 
 Imprisonment rate and the percentage of a census tract with a high blll has a generally positive correlation. Imprisonment rate and median income has a generally negative correlation. Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation.
