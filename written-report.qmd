@@ -320,21 +320,6 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
 
 When comparing the relationship between median income and imprisonment rate, it appears that generally they have a negative correlation. This graph suggests there could be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a categorical variable for the percentage of the census tract population that is black, native american, or "other race" that is categorically above or below the median in the data. The relationship between imprisonment rate and median income appears more negatively correlated when categorically above the median census tract population percentage of black, native american, and other_race. This supports that there could be an interaction effect between race and income.
 
-**Splitting the Data**
-
-We are concerned about spatial correlation, so we will split the data 80/20 to minimize this effect.
-
-```{r}
-#| label: splitting
-
-set.seed(210)
-
-data_split <- initial_split(bll_data, prop = 0.80)
-bll_train <- training(data_split)
-bll_test  <- testing(data_split)
-
-```
-
 **Checking Initial Modelling Conditions**
 
 ```{r}
@@ -342,10 +327,10 @@ bll_test  <- testing(data_split)
 library(knitr)
 
 #filtering data points where num_bll = 0
-bll_data_modeltrain <- bll_train %>% 
+bll_data_checking <- bll_data %>% 
   filter(num_bll != 0)
 
-bll_full_model <- lm(imprisonment_rt ~ perc_bll_indicator + POC_other + med_income + median_age + perc_male + med_income * POC_other, data = bll_data_modeltrain) 
+bll_full_model <- lm(imprisonment_rt ~ perc_bll_indicator + POC_other + med_income + median_age + perc_male + med_income * POC_other, data = bll_data) 
 
 tidy(bll_full_model) %>% 
 kable(digits = 3)
@@ -383,7 +368,7 @@ vif_fm
 #| label: linearity?
 #Now going to check for linearity between variables to see if we need to transform any.
 
-bll_data_modeltrain %>% 
+bll_data_checking %>% 
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
  select(imprisonment_rt, perc_bll_indicator, med_income, median_age) %>%
@@ -393,19 +378,19 @@ filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>%
 ```{r}
 #| label: log_transformation
 #used +1 to avoid log(0) issues? Idk that was new for me and not sure we need to keep it.
-bll_data_modeltrain2 <- bll_train %>%
+bll_data_transformed <- bll_data_checking %>%
   mutate(
     log_med_income = log(med_income + 1),       
     log_imprisonment_rt = log(imprisonment_rt + 1) 
   ) %>% 
   filter(imprisonment_rt != 0)
 
-log_model <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
-                POC_other + median_age + perc_male, data = bll_data_modeltrain2)
+log_model_checking <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male, data = bll_data_transformed)
 
-log_model_aug <- augment(log_model)
+log_model_checking_aug <- augment(log_model_checking)
 
-log_model_aug |>
+log_model_checking_aug |>
   ggplot(aes(x = .fitted, y = .std.resid)) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
@@ -416,22 +401,68 @@ log_model_aug |>
   )
 
 
-vif_fm_log <- vif(log_model)
+vif_fm_log <- vif(log_model_checking)
 vif_fm_log
+
+#Stripe is gone- happened after removing census tracts where imprisonment rate is equal to zero. We can leave the stripe in for this analysis and attribute it to these tracts.
 
 ```
 
-The residual plot looks way better except for that one stripe of residuals. I am not sure what is causing that. The VIF values are awesome and super low too. Ignoring the stripe that would violate our other conditions, I am going to try a stepwise model selection.
+**Splitting the Data**
 
-The stripe could be due to census tracts next to each other influencing each other? This could be a good graph to show in class.
+We are concerned about spatial correlation, so we will split the data 80/20 to minimize this effect. 20% goes to training data.
 
+```{r}
+#| label: splitting
+
+set.seed(210)
+
+data_split <- initial_split(bll_data_transformed, prop = 0.20)
+bll_train <- training(data_split)
+bll_test  <- testing(data_split)
+
+```
+
+```{r}
+#| label: removing-influential-points
+#removing influential points in the training data only.
+
+#new model fitted on training data only
+
+log_model_actual <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male, data = bll_train)
+
+log_model_actual_aug <- augment(log_model_actual)
+
+log_model_actual_aug |>
+  ggplot(aes(x = .fitted, y = .std.resid, color = .cooksd)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Standardized Residuals vs Fitted Values",
+    x = "Fitted Value",
+    y = "Standardized Residual",
+    color = "Cook's Distance"
+  ) +
+  scale_color_viridis_c() +
+  theme_minimal() 
+
+log_model_actual_aug %>% 
+  filter(.cooksd >= 0.5) %>% 
+  select(.hat, .std.resid, .cooksd)
+
+tidy(log_model_actual) %>% 
+  kable(digits = 3)
+
+#It does not appear there are any data points in the training data with a cook's distance greater than 0.5. Therefore, none are removed.
+```
 ```{r}
 #| label: model-selection
 
 library(MASS)
 
 
-stepwise_model_mass <- stepAIC(bll_full_model, direction = "both", trace = 1)
+stepwise_model_mass <- stepAIC(log_model_actual, direction = "both", trace = 1)
 
 
 summary(stepwise_model_mass)
@@ -441,6 +472,21 @@ library(broom)
 tidy(stepwise_model_mass) %>%
   kable(digits = 3)
 
+#Interestingly, the lead predictor was removed through stepwise selection, perhaps indicating that it is not useful here. We are going to force it back into the model since it is a variable of interest.
+
+```
+```{r}
+#| label: model-evaluation
+
+log_predictions <- predict(log_model_actual, newdata = bll_test)
+
+bll_test_results <- bll_test %>%
+  mutate(predicted = exp(log_imprisonment_rt)) %>%
+  select(imprisonment_rate, predicted)
+
+bll_test <- bll_test %>%
+  mutate(imprisonment_rate = exp(log_imprisonment_rt))
+
+metrics(bll_test_results, truth = imprisonment_rate, estimate = predicted)
 ```
 
-Interestingly, the lead predictor was removed through stepwise selection, perhaps indicating that it is not useful here.
