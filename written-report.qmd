@@ -417,7 +417,7 @@ We are concerned about spatial correlation, so we will split the data 80/20 to m
 
 set.seed(210)
 
-data_split <- initial_split(bll_data_transformed, prop = 0.20)
+data_split <- initial_split(bll_data_transformed, prop = 0.50)
 bll_train <- training(data_split)
 bll_test  <- testing(data_split)
 
@@ -464,11 +464,19 @@ library(MASS)
 
 stepwise_model_mass <- stepAIC(log_model_actual, direction = "both", trace = 1)
 
+#This code will force R to keep BLL in the model #stepwise_model_forced <- stepAIC(
+#  model_with_lead,
+#  scope = list(
+#    lower = ~ perc_bll_indicator,  # minimum model includes lead
+#    upper = ~ perc_bll_indicator + log_med_income + POC_other + median_age + perc_male
+#  ),
+#  direction = "both",
+#  trace = 1
+#)
 
-summary(stepwise_model_mass)
 
+summary(stepwise_model_mass) 
 
-library(broom)
 tidy(stepwise_model_mass) %>%
   kable(digits = 3)
 
@@ -480,13 +488,32 @@ tidy(stepwise_model_mass) %>%
 
 log_predictions <- predict(log_model_actual, newdata = bll_test)
 
-bll_test_results <- bll_test %>%
-  mutate(predicted = exp(log_imprisonment_rt)) %>%
-  select(imprisonment_rate, predicted)
-
 bll_test <- bll_test %>%
   mutate(imprisonment_rate = exp(log_imprisonment_rt))
 
-metrics(bll_test_results, truth = imprisonment_rate, estimate = predicted)
+
+bll_test_results <- bll_test %>%
+  mutate(predicted = exp(log_predictions)) %>%
+  dplyr::select(imprisonment_rate, predicted)
+
+metrics_table <- bll_test_results %>%
+  yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>%
+  filter(.metric %in% c("rmse", "rsq"))
+
+metrics_table %>%
+  kable(digits = 3, caption = "Model Performance (RMSE and R-squared)")
+
+#R squared valued is abysmal. it is 0.029. This differs significantly from the R squares and adjusted R of models used on the training data.
+
+# Full model R-squared
+summary(log_model_actual)$r.squared
+summary(log_model_actual)$adj.r.squared
+
+# Stepwise model R-squared
+summary(stepwise_model_mass)$r.squared
+summary(stepwise_model_mass)$adj.r.squared
+
+summary(log_model_checking)$r.squared
+summary(log_model_checking)$adj.r.squared
 ```
 
