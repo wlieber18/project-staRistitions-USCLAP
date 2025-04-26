@@ -28,6 +28,7 @@ library(rms)
 library(readr)
 library(GGally)
 
+
 ca_incarceration <- read_excel("data/census_tract_prison.xlsx")
 ca_lead <- read_excel("data/New_census_tract_lead_level.xlsx")
 
@@ -497,8 +498,8 @@ ggplot(bll_data_geo) +
 
 #we assign 3 folds to the training data and 2 to the testing data
 
-train_folds <- c(1, 2, 3)
-test_folds  <- c(4, 5)
+train_folds <- c(1, 2, 3, 4)
+test_folds  <- c(5)
 
 bll_train <- bll_data_geo %>%
   filter(fold %in% train_folds)
@@ -539,7 +540,7 @@ tidy(log_model_actual) %>%
 
 #It does not appear there are any data points in the training data with a cook's distance greater than 0.5. Therefore, none need to be removed.
 ```
-```{r, eval = FALSE}
+```{r}
 #| label: model-selection
 
 library(MASS)
@@ -583,4 +584,62 @@ metrics_table %>%
   kable(digits = 3, caption = "Model Performance (RMSE and R-squared)")
 
 ```
+```{r}
+#| label: checking-effects-of-block-CV
+
+#how do we know that the spatial CV successfully addressed the independence problem?
+#We would expect the models to be worse predictors on the spatial CV data. 
+
+#randomly split data
+
+set.seed(210)
+random_split <- initial_split(bll_data_geo, prop = 0.8)
+bll_train_random <- training(random_split)
+bll_test_random  <- testing(random_split)
+
+log_model_actual2 <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male + POC_other * log_med_income, data = bll_train_random)
+
+stepwise_model_forced2 <- stepAIC(
+  log_model_actual2,
+  scope = list(
+    lower = ~ perc_bll_indicator, 
+    upper = ~ log_med_income + perc_bll_indicator + POC_other + median_age + perc_male + POC_other * log_med_income
+  ),
+  direction = "both",
+  trace = 1
+)
+
+log_predictions2 <- predict(log_model_actual2, newdata = bll_test_random)
+
+bll_test_random <- bll_test_random %>%
+  mutate(imprisonment_rate = exp(log_imprisonment_rt))
+
+bll_test_results2 <- bll_test_random %>%
+  mutate(predicted = exp(log_predictions2)) %>%
+  dplyr::select(imprisonment_rate, predicted)
+
+metrics_table <- bll_test_results2 %>%
+  yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>% 
+  filter(.metric %in% c("rmse", "rsq"))
+
+metrics_table %>%
+  kable(digits = 3, caption = "Random-Split Model Performance (RMSE and R-squared)")
+
+#the R squared value for the random split is higher, which is odd.
+  
+```
+```{r, eval = FALSE}
+summary(log_model_actual)$r.squared
+summary(log_model_actual2)$r.squared
+```
+```{r, eval = FALSE}
+bll_data_geo %>%
+  count(fold) %>%
+  arrange(fold) %>%
+  kable(digits = 0, caption = "Sample Size per Spatial Fold")
+```
+
+
+
 
