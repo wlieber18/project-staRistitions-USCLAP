@@ -445,6 +445,34 @@ bll_data_geo <- bll_data_geo %>%
          !is.na(perc_male))
 ```
 ```{r}
+#| label: spatial-cross-validation
+#If training census tracts are next to testing census tracts, this could create spatial bias in the model. To address this, we employed spatial cross validation, which splits the data into folds that are distant from each other.
+
+#Best sources explaining what is happening
+
+#https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13107
+#https://www.frontiersin.org/journals/remote-sensing/articles/10.3389/frsen.2025.1531097/full
+
+#Other sources
+
+#https://stats.stackexchange.com/questions/460905/data-partitioning-for-spatial-data
+#https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecm.1557
+
+set.seed(210)
+
+spatial_folds <- spatialBlock(
+  speciesData = bll_data_geo,
+  theRange = 100000,  #we split the data into 5 regions, each totally 100km.
+  k = 5,
+  selection = "random",
+  iteration = 100,
+  showBlocks = TRUE
+)
+
+bll_data_geo$fold <- spatial_folds$foldID
+
+```
+```{r}
 #| label: plotting-lead-levels
 
 bll_data_geo <- bll_data_geo %>%
@@ -463,26 +491,6 @@ ggplot(bll_data_geo) +
     title = "Blood Lead Level Categories by Census Tract",
     fill = "Lead Level Category"
   ) 
-```
-```{r}
-#| label: spatial-cross-validation
-#If training census tracts are next to testing census tracts, this could create spatial bias in the model. To address this, we employed spatial cross validation, which splits the data into folds that are distant from each other.
-#https://stats.stackexchange.com/questions/460905/data-partitioning-for-spatial-data
-#https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecm.1557
-
-set.seed(210)
-
-spatial_folds <- spatialBlock(
-  speciesData = bll_data_geo,
-  theRange = 100000,  #we split the data into 5 regions, each totally 100km.
-  k = 5,
-  selection = "random",
-  iteration = 100,
-  showBlocks = TRUE
-)
-
-bll_data_geo$fold <- spatial_folds$foldID
-
 ```
 ```{r}
 #| label: splitting
