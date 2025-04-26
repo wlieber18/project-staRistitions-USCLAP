@@ -21,7 +21,6 @@ library(tidyverse)
 library(tidymodels)
 library(patchwork)
 library(ggplot2)
-install.packages("readxl") 
 library(readxl)  
 library(dplyr)
 library(knitr)
@@ -365,8 +364,8 @@ vif_fm
 4.  Independence condition also may not be satisfied. Census tracts next to each other could be more likely to have similar incarceration rates or blood lead levels.
 
 ```{r}
-#| label: linearity?
-#Now going to check for linearity between variables to see if we need to transform any.
+#| label: condition-checking
+#Now going to check for the need to transform any variables
 
 bll_data_checking %>% 
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
@@ -410,27 +409,103 @@ vif_fm_log
 
 **Splitting the Data**
 
-We are concerned about spatial correlation, so we will split the data 80/20 to minimize this effect. 20% goes to training data.
-
+We were concerned about spatial correlation, so originally split the data with 20% in training and 80% testing to minimize this effect. We received abysmal R squared values when doing this. We are going to perform a form of cross validation called spatial cross validation to address model overfitting and independence issues within our data. Because we are addressing the independence problem using this method, we can now do 80% training and 20% testing. For this, we used ChatGPT to suggest solutions. It suggested spatial cross validation, which we researched further using this source: https://r.geocompx.org/spatial-cv 
 ```{r}
-#| label: splitting
+#| label: loading-required-packages
+
+#install.packages("tigris")
+#install.packages("sf")
+#install.packages("blockCV")
+library(blockCV)
+library(tigris)
+library(sf)
+
+
+
+```
+```{r}
+#| label: joining-shapefiles-to-bl-data
+
+ca_tracts <- tracts(state = "CA", cb = TRUE, year = 2020)
+
+ca_tracts <- ca_tracts %>%
+  mutate(GEOID = as.character(GEOID))
+
+bll_data_transformed <- bll_data_transformed %>%
+  mutate(census_tract = as.character(census_tract)) 
+
+bll_data_geo <- left_join(ca_tracts, bll_data_transformed, by = c("GEOID" = "census_tract"))
+
+bll_data_geo <- bll_data_geo %>%
+  filter(!is.na(log_imprisonment_rt), 
+         !is.na(log_med_income),
+         !is.na(perc_bll_indicator),
+         !is.na(POC_other),
+         !is.na(median_age),
+         !is.na(perc_male))
+```
+```{r}
+#| label: plotting-lead-levels
+
+bll_data_geo <- bll_data_geo %>%
+  mutate(lead_category = case_when(
+    perc_bll_indicator < 0.5 ~ "< 0.5%",
+    perc_bll_indicator < 1 ~ "0.5–1%",
+    perc_bll_indicator < 2 ~ "1–2%",
+    perc_bll_indicator < 5 ~ "2–5%",
+    TRUE ~ ">5%"
+  )) 
+
+ggplot(bll_data_geo) +
+  geom_sf(aes(fill = lead_category), color = NA) +
+  scale_fill_viridis_d(option = "plasma", na.value = "grey80") +
+  labs(
+    title = "Blood Lead Level Categories by Census Tract",
+    fill = "Lead Level Category"
+  ) 
+```
+```{r}
+#| label: spatial-cross-validation
+#If training census tracts are next to testing census tracts, this could create spatial bias in the model. To address this, we employed spatial cross validation, which splits the data into folds that are distant from each other.
+#https://stats.stackexchange.com/questions/460905/data-partitioning-for-spatial-data
+#https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecm.1557
 
 set.seed(210)
 
-data_split <- initial_split(bll_data_transformed, prop = 0.50)
-bll_train <- training(data_split)
-bll_test  <- testing(data_split)
+spatial_folds <- spatialBlock(
+  speciesData = bll_data_geo,
+  theRange = 100000,  #we split the data into 5 regions, each totally 100km.
+  k = 5,
+  selection = "random",
+  iteration = 100,
+  showBlocks = TRUE
+)
+
+bll_data_geo$fold <- spatial_folds$foldID
+
+```
+```{r}
+#| label: splitting
+
+#we assign 3 folds to the training data and 2 to the testing data
+
+train_folds <- c(1, 2, 3)
+test_folds  <- c(4, 5)
+
+bll_train <- bll_data_geo %>%
+  filter(fold %in% train_folds)
+
+bll_test <- bll_data_geo %>%
+  filter(fold %in% test_folds)
 
 ```
 
 ```{r}
 #| label: removing-influential-points
-#removing influential points in the training data only.
-
-#new model fitted on training data only
+#choosing interaction model
 
 log_model_actual <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
-                POC_other + median_age + perc_male, data = bll_train)
+                POC_other + median_age + perc_male + POC_other * log_med_income, data = bll_train)
 
 log_model_actual_aug <- augment(log_model_actual)
 
@@ -447,40 +522,37 @@ log_model_actual_aug |>
   scale_color_viridis_c() +
   theme_minimal() 
 
-log_model_actual_aug %>% 
-  filter(.cooksd >= 0.5) %>% 
-  select(.hat, .std.resid, .cooksd)
+#log_model_actual_aug %>% 
+  #filter(.cooksd >= 0.5) %>% 
+  #select(.hat, .std.resid, .cooksd)
 
 tidy(log_model_actual) %>% 
   kable(digits = 3)
 
-#It does not appear there are any data points in the training data with a cook's distance greater than 0.5. Therefore, none are removed.
+#It does not appear there are any data points in the training data with a cook's distance greater than 0.5. Therefore, none need to be removed.
 ```
-```{r}
+```{r, eval = FALSE}
 #| label: model-selection
 
 library(MASS)
 
 
-stepwise_model_mass <- stepAIC(log_model_actual, direction = "both", trace = 1)
+stepwise_model_forced <- stepAIC(
+  log_model_actual,
+  scope = list(
+    lower = ~ perc_bll_indicator, 
+    upper = ~ log_med_income + perc_bll_indicator + POC_other + median_age + perc_male + POC_other * log_med_income
+  ),
+  direction = "both",
+  trace = 1
+)
 
-#This code will force R to keep BLL in the model #stepwise_model_forced <- stepAIC(
-#  model_with_lead,
-#  scope = list(
-#    lower = ~ perc_bll_indicator,  # minimum model includes lead
-#    upper = ~ perc_bll_indicator + log_med_income + POC_other + median_age + perc_male
-#  ),
-#  direction = "both",
-#  trace = 1
-#)
+summary(stepwise_model_forced)
 
-
-summary(stepwise_model_mass) 
-
-tidy(stepwise_model_mass) %>%
+tidy(stepwise_model_forced) %>%
   kable(digits = 3)
 
-#Interestingly, the lead predictor was removed through stepwise selection, perhaps indicating that it is not useful here. We are going to force it back into the model since it is a variable of interest.
+#Interestingly, the lead predictor was removed originally through stepwise selection, perhaps indicating that it is not useful here. We are going to force it back into the model since it is a variable of interest.
 
 ```
 ```{r}
@@ -491,29 +563,16 @@ log_predictions <- predict(log_model_actual, newdata = bll_test)
 bll_test <- bll_test %>%
   mutate(imprisonment_rate = exp(log_imprisonment_rt))
 
-
 bll_test_results <- bll_test %>%
   mutate(predicted = exp(log_predictions)) %>%
   dplyr::select(imprisonment_rate, predicted)
 
 metrics_table <- bll_test_results %>%
-  yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>%
+  yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>% 
   filter(.metric %in% c("rmse", "rsq"))
 
 metrics_table %>%
   kable(digits = 3, caption = "Model Performance (RMSE and R-squared)")
 
-#R squared valued is abysmal. it is 0.029. This differs significantly from the R squares and adjusted R of models used on the training data.
-
-# Full model R-squared
-summary(log_model_actual)$r.squared
-summary(log_model_actual)$adj.r.squared
-
-# Stepwise model R-squared
-summary(stepwise_model_mass)$r.squared
-summary(stepwise_model_mass)$adj.r.squared
-
-summary(log_model_checking)$r.squared
-summary(log_model_checking)$adj.r.squared
 ```
 
