@@ -629,7 +629,7 @@ metrics_table %>%
 #the R squared value for the random split is higher, which is odd.
   
 ```
-```{r, eval = FALSE}
+```{r}
 summary(log_model_actual)$r.squared
 summary(log_model_actual2)$r.squared
 ```
@@ -639,7 +639,5 @@ bll_data_geo %>%
   arrange(fold) %>%
   kable(digits = 0, caption = "Sample Size per Spatial Fold")
 ```
-
-
 
 
