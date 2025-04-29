@@ -1,13 +1,14 @@
 ---
 title: "Lead in the Water: The Effects of Blood Lead Levels on Incareration Rates"
-subtitle: An Analysis
+subtitle: A Socio-Spatial Analysis
 author: "staRstistions - Will Lieber, Wania Iftikhar Khan, AJ Tenser, Kami Akala"
-date: "April 10 2025"
+date: "April 30 2025"
 format: pdf
 execute: 
   warning: false
   message: false
   echo: false
+  progress: false
 editor: visual
 ---
 
@@ -139,7 +140,9 @@ This research topic has important societal implications, namely the complicated 
 
 ### **Our Data**
 
-We've chosen to create our dataframe from a variety of census data relating to California in 2020. Our data looks at different California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. For our analysis, we are particularly focused on `perc_bll_indicator`, `med_income`, our age and race variables and how well they can predict `imprisonment_rt`. HOW WAS OUR DATA COLLECTED. HOW DID WE CLEAN THE DATA.
+We've chosen to create our dataframe from a variety of census data relating to California in 2020. Our data looks at different California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. For our analysis, we are particularly focused on `perc_bll_indicator`, `med_income`, our age and race variables and how well they can predict `imprisonment_rt`. The demographic data was collected through the Census data collection process which involves online surveys, in-person questionnaires, and is self-reported. The blood lead level data was compiled using the mandatory reported data entered by laboratories and heathcare workers. The data was sorted into census tracts based on reported street address and observations deemed false positive or false negative by the California Department of Public Health (CDPH) have been omitted. To clean the data, we joined each dataset to each other based on census tract and renamed columns for clarity. In addition, we calculated new columns to simplify categories (i.e. age ranges, ethnicities) and omitted fields which would not be relevant for this investigation.
+
+**Note:** All figures referenced throughout the report can be found in the Appendix section below.
 
 #### **Univariate Data Exploration**
 
@@ -289,10 +292,12 @@ ggincome
 
 **Imprisonment vs Median Income (Figure 7):** Imprisonment rate and median income has a generally negative correlation.
 
-**Potential Interactions**
+**Potential Interactions (Figure 8):**
 
 ```{r}
-#| label: interaction-effects
+#| label: interaction-effects-code
+#| echo: false
+#| fig-show: hide
 
 bll_data <- bll_data %>%
   mutate(POC_other = black + native_am + other_race, 
@@ -319,7 +324,7 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
 
 When comparing the relationship between median income and imprisonment rate, it appears that generally they have a negative correlation. This graph suggests there could be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a categorical variable for the percentage of the census tract population that is black, native american, or "other race" that is categorically above or below the median in the data. The relationship between imprisonment rate and median income appears more negatively correlated when categorically above the median census tract population percentage of black, native american, and other_race. This supports that there could be an interaction effect between race and income.
 
-**Checking Initial Modelling Conditions**
+**Checking Initial Modelling Conditions (Figure**
 
 ```{r}
 #| label: intial-conditions
@@ -414,9 +419,9 @@ We were concerned about spatial correlation, so originally split the data with 2
 ```{r}
 #| label: loading-required-packages
 
-#install.packages("tigris")
-#install.packages("sf")
-#install.packages("blockCV")
+install.packages("tigris")
+install.packages("sf")
+install.packages("blockCV")
 library(blockCV)
 library(tigris)
 library(sf)
@@ -449,6 +454,7 @@ bll_data_geo <- bll_data_geo %>%
 
 ```{r}
 #| label: spatial-cross-validation
+
 #If training census tracts are next to testing census tracts, this could create spatial bias in the model. To address this, we employed spatial cross validation, which splits the data into folds that are distant from each other.
 
 #Best sources explaining what is happening
@@ -478,6 +484,9 @@ bll_data_geo$fold <- spatial_folds$foldID
 
 ```{r}
 #| label: plotting-lead-levels
+#| echo: false
+#| progress: false
+#| message: false
 
 bll_data_geo <- bll_data_geo %>%
   mutate(lead_category = case_when(
@@ -692,7 +701,7 @@ bll_data %>%
     subtitle = "per 100,000 by Census Tract",
     x = "Imprisonment Rate (per 100,000)",
     y = "Count",
-    caption = "Figure 3"
+    caption = "Figure 2"
   ) + theme_classic()
 
 carc_med <- median(bll_data$imprisonment_rt, na.rm = TRUE)
@@ -721,7 +730,7 @@ inc_med <- median(bll_data$med_income, na.rm = TRUE)
 inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 ```
 
-![Spatial Distribution of BLL in California](data/Layout.png){width="200"}
+![Figure 4: Spatial Distribution of BLL in California](data/Layout.png){width="400"}
 
 ```{r}
 #| label: bivariate-exploration
@@ -777,4 +786,31 @@ bll_data %>%
        caption = "Figure 6"
        ) +
   theme_classic()  
+```
+
+```{r}
+#| label: interaction-effects-plot
+
+bll_data <- bll_data %>%
+  mutate(POC_other = black + native_am + other_race, 
+         race_categorical = ifelse(POC_other > median(POC_other, na.rm = TRUE), 
+                                   "above_median_poc_other", 
+                                   "below_median_poc_other"))
+
+bll_data %>% 
+filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
+filter(num_bll != 0) %>% 
+ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Relationship between income and imprisonment",
+    subtitle = "By median percentages of Black, Native American, and other races",
+    x = "Median Income",
+    y = "Imprisonment Rate",
+    color = "Above or below median",
+    caption = "Figure 7"
+  ) +
+  theme_minimal()
 ```
