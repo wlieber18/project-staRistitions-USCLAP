@@ -432,6 +432,7 @@ library(sf)
 
 ```{r}
 #| label: joining-shapefiles-to-bl-data
+#| include: FALSE
 
 ca_tracts <- tracts(state = "CA", cb = TRUE, year = 2020)
 
@@ -454,6 +455,10 @@ bll_data_geo <- bll_data_geo %>%
 
 ```{r}
 #| label: spatial-cross-validation
+#| message: FALSE
+#| warning: FALSE
+#| include: FALSE
+#| echo: FALSE
 
 #If training census tracts are next to testing census tracts, this could create spatial bias in the model. To address this, we employed spatial cross validation, which splits the data into folds that are distant from each other.
 
@@ -469,15 +474,15 @@ bll_data_geo <- bll_data_geo %>%
 
 set.seed(210)
 
-spatial_folds <- spatialBlock(
-  speciesData = bll_data_geo,
-  theRange = 100000,  #we split the data into 5 regions, each totally 100km.
-  k = 5,
-  selection = "random",
-  iteration = 100,
-  showBlocks = TRUE
-)
-
+spatial_folds <- invisible(
+  blockCV::spatialBlock(
+    speciesData = bll_data_geo,
+    theRange = 100000,
+    k = 5,
+    selection = "random",
+    iteration = 100,
+    showBlocks = TRUE))
+  
 bll_data_geo$fold <- spatial_folds$foldID
 
 ```
