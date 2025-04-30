@@ -188,7 +188,7 @@ carc_limit <- quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
 
 bll_data %>%
   ggplot(aes(x = imprisonment_rt)) +
-  geom_histogram(color = "black", fill = "lightblue4") +
+  geom_histogram(color = "black", fill = "steelblue3") +
   scale_x_continuous(limits = c(0, 1250)) +
   labs(
     title = "Distribution of Imprisonment Rates in CA",
@@ -212,7 +212,7 @@ inc_limit <- quantile(bll_data$med_income, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = med_income)) +
-  geom_histogram(color = "black", fill = "lightblue4") +
+  geom_histogram(color = "black", fill = "steelblue3") +
   scale_x_continuous(limits = c(0, 200000)) +
   scale_y_continuous(limits = c(0, 1000)) +
   labs(
@@ -247,7 +247,7 @@ bll_data %>%
   filter(num_bll != 0) %>% 
   filter(perc_bll_indicator != 0) %>%
   ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
-  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
+  geom_histogram(color = "black", fill = "steelblue3") +
   geom_smooth(method = "lm", se = FALSE, linewidth = 0.6, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
        y = "Imprisonment Rate",
@@ -266,7 +266,7 @@ ggincome <- bll_data %>%
   filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
   filter(num_bll != 0) %>% 
   ggplot(aes(y = imprisonment_rt, x = med_income)) +
-  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
+  geom_histogram(color = "black", fill = "steelblue3") +
   geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. Median Income",
        y = "Imprisonment Rate",
@@ -280,7 +280,7 @@ ggage<- bll_data %>%
   filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
   filter(num_bll != 0) %>% 
   ggplot(aes(x = age_15_to_29, y = imprisonment_rt)) +
-  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
+  geom_point(alpha = 0.6, size = 0.6, color = "steelblue3") +
   geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. percentage age 15-29",
        y = "Imprisonment Rate",
@@ -642,7 +642,13 @@ bll_data_geo %>%
 
 Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship based on existing research linking lead exposure to increased criminial tendencies. We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and financial demographic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate while, income, age, and the interaction between income and race came out as our most significant predictors. We understand that the circumstances surrounding once likelihood of being imprisoned are complex and based on our analysis it appears that lead exposure isn't a particularly useful metric. General discourse on this topic seems to reveal that differing results in studies may be due to the overstated effect of lead exposure on incarceration rate or at the very least, it's not a useful metric on its own.
 
-In terms of potential limitations or future changes of our analysis methods, it would be interesting to incorporate even more geographical regions as there are many states that currently have significant levels of lead exposure.
+**Interesting Insights**
+
+We used spatial cross validation to create training and testing sets that account for the fact that census tracts next to each other in our dataset likely have similar values. Inclusion of some census tracts in the training data that are right next to census tracts in the testing data could therefore bias model performance. So a model trained on spatially cross validated data evaluated using data that is geographically distant from the training set should in theory be more robust. We would expect the R squared values to be lower and the RMSE values to be higher for the spatially cross validated model. While the RMSE values were higher for the spatially cross validated model, in line with our prediction, interestingly, this was not the case for the R squared values–compared to a model that was training on randomly split data (see appendix: 80/20 train test- roughly the same proportion of the total census tracts as the Spatial CV train test), the spatial CV model has a higher R squared. This could potentially be caused by the random split model overfitting to regions that generalize poorly to the new regions. Even though the RMSE value is worse, the spatial CV model likely provides a more realistic prediction on new regions given the way it was trained, making it, in our opinion, the superior model.
+
+**Limitations and Future Work**
+
+In terms of potential limitations or future changes of our analysis methods, it would be interesting to incorporate even more geographical regions as there are many states that currently have significant levels of lead exposure. Perhaps there are broader patterns we're not seeing with a focus on California alone. Alternatively, it would be interesting to see the same analysis except on California counties instead of tracts to easily relate county-specific traits which might be more stable to our conclusions. A potential limitation of our current analysis is the way that we measure blood lead levels of a county. We used the test levels of children to relate to imprisonment rates of individuals that are likely older, making this indicator a bit unreliable in terms of measuring the exposure rate for individuals currently imprisoned.
 
 ## **Appendix**
 
@@ -719,22 +725,25 @@ bll_data <- bll_data %>%
                                    "above_median_poc_other", 
                                    "below_median_poc_other"))
 
+# Filter out rows with NA values in 'race_categorical'
 bll_data %>%
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
   filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>%
   filter(num_bll != 0) %>%
+  filter(!is.na(race_categorical)) %>%  # Remove rows with NA in race_categorical
   ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
   geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
   labs(
-    title = "Relationship between income and imprisonment",
+    title = "Relationship between income and Imprisonment",
     subtitle = "By median percentages of Black, Native American, and other races",
     x = "Median Income",
     y = "Imprisonment Rate",
     color = "Above or below median",
   ) +
-  scale_color_manual(values = c("steelblue3", "mediumorchid"))+
-  theme_minimal()
+  scale_color_manual(values = c("steelblue3", "mediumorchid")) +
+  theme_minimal() +
+  facet_wrap(~race_categorical, ncol = 1)
 ```
 
 ```{r}
