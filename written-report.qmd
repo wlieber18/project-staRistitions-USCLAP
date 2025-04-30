@@ -528,6 +528,8 @@ ggplot(bll_data_geo) +
 
 ### Final Model Selection
 
+With our transformed variables, we got a better residuals plot (figure 10) with only a single outlier. From there, we arrived at our final model using stepwise selection on our 80/20 split data to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statiscitaly significant in this model.
+
 ```{r}
 #| label: splitting
 
@@ -546,6 +548,7 @@ bll_test <- bll_data_geo %>%
 
 ```{r}
 #| label: removing-influential-points
+#| fig-show: hide
 #choosing interaction model
 
 log_model_actual <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
@@ -589,13 +592,13 @@ stepwise_model_forced <- stepAIC(
     upper = ~ log_med_income + perc_bll_indicator + POC_other + median_age + perc_male + POC_other * log_med_income
   ),
   direction = "both",
-  trace = 1
+  trace = 0
 )
 
-summary(stepwise_model_forced)
+#summary(stepwise_model_forced)
 
-tidy(stepwise_model_forced) %>%
-  kable(digits = 3)
+#tidy(stepwise_model_forced) %>%
+ # kable(digits = 3)
 
 #Interestingly, the lead predictor was removed originally through stepwise selection, perhaps indicating that it is not useful here. We are going to force it back into the model since it is a variable of interest.
 
@@ -624,6 +627,7 @@ metrics_table %>%
 
 ```{r}
 #| label: checking-effects-of-block-CV
+#| fig-show: hide
 
 #how do we know that the spatial CV successfully addressed the independence problem?
 #We would expect the models to be worse predictors on the spatial CV data. 
@@ -836,12 +840,12 @@ bll_data %>%
     color = "Above or below median",
     caption = "Figure 8"
   ) +
-  scale_fill_manual(values = c("steelblue3", "mediumorchid"))+
+  scale_color_manual(values = c("steelblue3", "mediumorchid"))+
   theme_minimal()
 ```
 
 ```{r}
-#| label: residual-plot-1
+#| label: residual-plot-initial
 
 #there is one point with a residual so large the graph is not readable if we keep it. Filtering it out.
 full_model_aug |>
@@ -851,7 +855,7 @@ full_model_aug |>
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red4") +
   labs(
-    title = "Residuals vs Fitted Values",
+    title = "Initial Model: Residuals vs Fitted Values",
     x = "Fitted",
     y = "Standardized Residuals",
     caption = "Figure 9"
@@ -861,4 +865,36 @@ vif_fm <- vif(bll_full_model)
 vif_fm
 
 #There does not appear to be too much multicollinearity.
+```
+
+```{r}
+#| label: residual-plot-final
+#choosing interaction model
+
+log_model_actual <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male + POC_other * log_med_income, data = bll_train)
+
+log_model_actual_aug <- augment(log_model_actual)
+
+log_model_actual_aug |>
+  ggplot(aes(x = .fitted, y = .std.resid, color = .cooksd)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red4") +
+  labs(
+    title = "Standardized Residuals vs Fitted Values",
+    x = "Fitted Value",
+    y = "Standardized Residual",
+    color = "Cook's Distance",
+    caption = "Figure 10"
+  ) +
+  scale_color_viridis_c() +
+  theme_minimal() 
+
+#log_model_actual_aug %>% 
+  #filter(.cooksd >= 0.5) %>% 
+  #select(.hat, .std.resid, .cooksd)
+
+tidy(log_model_actual) %>% 
+  kable(digits = 3)
+
 ```
