@@ -681,11 +681,11 @@ bll_limit <- quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = perc_bll_indicator)) +
-  geom_histogram(color = "black", fill = "lightblue4") +
+  geom_histogram(color = "black", fill = "steelblue3") +
   scale_x_continuous(limits = c(0, 12.5)) +
   scale_y_continuous(limits = c(0, 1000)) +
   labs(
-    title = "Distribution of Children Under 6 
+    title = "Distribution of Children Under 6
 with High Blood Lead Levels in CA",
     subtitle = "by Census Tract",
     x = "Children under 6 with a BLL ≥3.5 µg/dL (%)",
@@ -705,7 +705,7 @@ carc_limit <- quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
 
 bll_data %>%
   ggplot(aes(x = imprisonment_rt)) +
-  geom_histogram(color = "black", fill = "lightblue4") +
+  geom_histogram(color = "black", fill = "steelblue3") +
   scale_x_continuous(limits = c(0, 1250)) +
   labs(
     title = "Distribution of Imprisonment Rates in CA",
@@ -726,7 +726,7 @@ inc_limit <- quantile(bll_data$med_income, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = med_income)) +
-  geom_histogram(color = "black", fill = "lightblue4") +
+  geom_histogram(color = "black", fill = "steelblue3") +
   scale_x_continuous(limits = c(0, 200000)) +
   scale_y_continuous(limits = c(0, 1000)) +
   labs(
@@ -750,15 +750,15 @@ inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 #| Message: False
 #| Warning: False
 
-bll_data %>% 
-  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
+bll_data %>%
+  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
   filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm =
-                                       TRUE)) %>% 
-  filter(num_bll != 0) %>% 
+                                       TRUE)) %>%
+  filter(num_bll != 0) %>%
   filter(perc_bll_indicator != 0) %>%
   ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
-  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
-  geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
+  geom_point(alpha = 0.6, size = 0.6, color = "steelblue3") +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
        y = "Imprisonment Rate",
        x = "Percentage with BLL Indicator",
@@ -770,13 +770,13 @@ bll_data %>%
 
 
 
-bll_data %>% 
-  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
-  filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
-  filter(num_bll != 0) %>% 
+bll_data %>%
+  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
+  filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>%
+  filter(num_bll != 0) %>%
   ggplot(aes(y = imprisonment_rt, x = med_income)) +
-  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
-  geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
+  geom_point(alpha = 0.6, size = 0.6, color = "steelblue3") +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. Median Income",
        y = "Imprisonment Rate",
        x = "Median Income",
@@ -784,13 +784,13 @@ bll_data %>%
        ) +
   theme_classic()
 
-bll_data %>% 
-  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
-  filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
-  filter(num_bll != 0) %>% 
+bll_data %>%
+  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
+  filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>%
+  filter(num_bll != 0) %>%
   ggplot(aes(x = age_15_to_29, y = imprisonment_rt)) +
-  geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
-  geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
+  geom_point(alpha = 0.6, size = 0.6, color = "steelblue3") +
+  geom_smooth(method = "lm", se = FALSE, size = 0.8, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. percentage age 15-29",
        y = "Imprisonment Rate",
        x = "Percentage of population age 15-29",
@@ -808,11 +808,11 @@ bll_data <- bll_data %>%
                                    "above_median_poc_other", 
                                    "below_median_poc_other"))
 
-bll_data %>% 
-filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
-filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
-filter(num_bll != 0) %>% 
-ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
+bll_data %>%
+  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
+  filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>%
+  filter(num_bll != 0) %>%
+  ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(
@@ -823,6 +823,7 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
     color = "Above or below median",
     caption = "Figure 8"
   ) +
+  scale_fill_manual(values = c("steelblue3", "mediumorchid"))+
   theme_minimal()
 ```
 
@@ -831,11 +832,11 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
 
 #there is one point with a residual so large the graph is not readable if we keep it. Filtering it out.
 full_model_aug |>
-  filter(.rownames != 2421) %>% 
-  filter(.std.resid < 80) %>% 
+  filter(.rownames != 2421) %>%
+  filter(.std.resid < 80) %>%
   ggplot(aes(x = .fitted, y = .std.resid)) +
   geom_point() +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red4") +
   labs(
     title = "Residuals vs Fitted Values",
     x = "Fitted",
