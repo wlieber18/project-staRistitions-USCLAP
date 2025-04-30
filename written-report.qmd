@@ -139,7 +139,7 @@ This research topic has important societal implications, namely the complicated 
 
 ## Our Data
 
-We've chosen to create our dataframe from a variety of census data relating to California in 2020. Our data looks at different California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. For our analysis, we are particularly focused on `perc_bll_indicator`, `med_income`, our age and race variables and how well they can predict `imprisonment_rt`. The demographic data was collected through the Census data collection process which involves online surveys, in-person questionnaires, and is self-reported. The blood lead level data was compiled using the mandatory reported data entered by laboratories and healthcare workers. The data was sorted into census tracts based on reported street address and observations deemed false positive or false negative by the California Department of Public Health (CDPH) have been omitted. To clean the data, we joined each dataset to each other based on census tract and renamed columns for clarity. In addition, we calculated new columns to simplify categories (i.e. age ranges, ethnicity) and omitted fields which would not be relevant for this investigation.
+We've chosen to create our data frame from a variety of census data relating to California in 2020. Our data looks at different California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. For our analysis, we are particularly focused on `perc_bll_indicator`, `med_income`, our age and race variables and how well they can predict `imprisonment_rt`. The demographic data was collected through the Census data collection process which involves online surveys, in-person questionnaires, and is self-reported. The blood lead level data was compiled using the mandatory reported data entered by laboratories and healthcare workers. The data was sorted into census tracts based on reported street address and observations deemed false positive or false negative by the California Department of Public Health (CDPH) have been omitted. To clean the data, we joined each dataset to each other based on census tract and renamed columns for clarity. In addition, we calculated new columns to simplify categories (i.e. age ranges, ethnicity) and omitted fields which would not be relevant for this investigation.
 
 **Note:** Figures referenced throughout the report can be found in the Appendix section.
 
@@ -172,7 +172,7 @@ bll_med <- median(bll_data$perc_bll_indicator, na.rm = TRUE)
 bll_iqr <- IQR(bll_data$perc_bll_indicator, na.rm = TRUE)
 ```
 
-**Blood Lead Levels (Figure 1):** There are 94 census tracts that didn't test blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, there is a large concentration of census tracts that have a percent blood level indicator (bll) of 0 (1899 observations). While these should probably be included in the final analysis, removing these for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is `r bll_med` and the IQR is `r bll_iqr`.
+**Blood Lead Levels (Figure 1):** There are 94 census tracts that didn't test blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, there is a large concentration of census tracts that have a percent blood level indicator (bll) of 0 (1899 observations). While these should probably be included in the final analysis, removing these for data visualization produces a unimodal distribution that is heavily right skewed. Overall, the median blood level is `r bll_med` and the IQR is `r bll_iqr`.
 
 ![Figure 4: Spatial Distribution of BLL in California](data/Layout.png){width="200"}
 
@@ -247,8 +247,8 @@ bll_data %>%
   filter(num_bll != 0) %>% 
   filter(perc_bll_indicator != 0) %>%
   ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
-  geom_histogram(color = "black", fill = "steelblue3") +
-  geom_smooth(method = "lm", se = FALSE, linewidth = 0.6, color = "black", linetype = 2) +
+  geom_point(color = "black") +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.6, color = "steelblue3", linetype = 2) +
   labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
        y = "Imprisonment Rate",
        x = "Percentage with BLL Indicator",
@@ -293,9 +293,7 @@ ggage<- bll_data %>%
 
 **Imprisonment vs Median Income (Figure 7):** Imprisonment rate and median income has a generally negative correlation. This isn't surprising as it is generally understood that a lack of resources, including financial, can be a driving force towards engaging in illegal activities.
 
-**Imprisonment vs Population Aged 15-29 (Figure 8):** Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation. This isn't surprising as it's generally understood that one's likekihood to engage in illegal activieis is higher as an adolescent.
-
-**Potential Interactions (Figure 9):**
+**Imprisonment vs Population Aged 15-29 (Figure 8):** Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation. This isn't surprising as it's generally understood that one's likelihood to engage in illegal activities is higher as an adolescent.
 
 ```{r}
 #| label: interaction-effects-code
@@ -324,7 +322,7 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
   theme_minimal()
 ```
 
-There appears to be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a variable, POC_other, indicating the percentage of a census tract population that is non-White. In this figure we categorized tracts with POC_other values that were above and below the median in the data of this variable to create a categorical split. The relationship between imprisonment rate and income appears more negatively correlated when the percentatge of non-white people in the census tract is above the median.
+**Potential Interactions (Figure 9):** There appears to be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a variable, POC_other, indicating the percentage of a census tract population that is non-White. In this figure we categorized tracts with POC_other values that were above and below the median in the data of this variable to create a categorical split. The relationship between imprisonment rate and income appears more negatively correlated when the percentage of non-white people in the census tract is above the median.
 
 ## Methodology and Results
 
@@ -431,7 +429,7 @@ log_model_checking_aug |>
 
 **Splitting the Data**
 
-We were also concerned about spatial correlation amongst census tracts especially since there can be multiple within a single county meaning they would share a lot of features. So we originally split the data with 20% in training and 80% testing to minimize this effect. We received abysmal R squared values when doing this. Using ChatGPT for suggestions, it recommended spatial cross validation, which we researched further to ensure it made sense for our analysis^2^. It appeared to be a feasible method to address model overfitting and independence issues within our data. Because of that, we were then able to do a 80% training, 20% testing split.
+We were also concerned about spatial correlation among census tracts especially since there can be multiple within a single county meaning they would share a lot of features. So we originally split the data with 20% in training and 80% testing to minimize this effect. We received abysmal R squared values when doing this. Using ChatGPT for suggestions, it recommended spatial cross validation, which we researched further to ensure it made sense for our analysis^2^. It appeared to be a feasible method to address model over-fitting and independence issues within our data. Because of that, we were then able to do a 80% training, 20% testing split.
 
 2\. [Geocomputation with R](https://r.geocompx.org/spatial-cv)
 
@@ -503,6 +501,10 @@ bll_data_geo$fold <- spatial_folds$foldID
 
 ```
 
+![Spatial Correlation in CA](data/ca_spatial_layout.png){width="300"}
+
+I DON'T KNOW WHAT THIS MAP SHOWS BUT WE SHOULD HAVE SOME DESCRIPTION TO GO WITH THIS MAP!
+
 ```{r}
 #| label: plotting-lead-levels
 #| progress: false
@@ -528,7 +530,7 @@ ggplot(bll_data_geo) +
 
 ### Final Model Selection
 
-With our transformed variables, we got a better residuals plot **(Figure 11)** with only a single outlier. From there, we arrived at our final model using stepwise selection on our 80/20 split data to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statiscitaly significant in this model.
+With our transformed variables, we got a better residuals plot **(Figure 11)** with only a single outlier. From there, we arrived at our final model using step-wise selection on our 80/20 split data to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statistically significant in this model.
 
 ```{r}
 #| label: splitting
@@ -640,15 +642,17 @@ bll_data_geo %>%
 
 ## Discussion
 
-Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship based on existing research linking lead exposure to increased criminial tendencies. We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and financial demographic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate while, income, age, and the interaction between income and race came out as our most significant predictors. We understand that the circumstances surrounding once likelihood of being imprisoned are complex and based on our analysis it appears that lead exposure isn't a particularly useful metric. General discourse on this topic seems to reveal that differing results in studies may be due to the overstated effect of lead exposure on incarceration rate or at the very least, it's not a useful metric on its own.
+Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship based on existing research linking lead exposure to increased criminal tendencies. We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and financial demographic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate while, income, age, and the interaction between income and race came out as our most significant predictors. We understand that the circumstances surrounding once likelihood of being imprisoned are complex and based on our analysis it appears that lead exposure isn't a particularly useful metric. General discourse on this topic seems to reveal that differing results in studies may be due to the overstated effect of lead exposure on incarceration rate or at the very least, it's not a useful metric on its own.
 
 **Interesting Insights**
 
-We used spatial cross validation to create training and testing sets that account for the fact that census tracts next to each other in our dataset likely have similar values. Inclusion of some census tracts in the training data that are right next to census tracts in the testing data could therefore bias model performance. So a model trained on spatially cross validated data evaluated using data that is geographically distant from the training set should in theory be more robust. We would expect the R squared values to be lower and the RMSE values to be higher for the spatially cross validated model. While the RMSE values were higher for the spatially cross validated model, in line with our prediction, interestingly, this was not the case for the R squared values–compared to a model that was training on randomly split data (see appendix: 80/20 train test- roughly the same proportion of the total census tracts as the Spatial CV train test), the spatial CV model has a higher R squared. This could potentially be caused by the random split model overfitting to regions that generalize poorly to the new regions. Even though the RMSE value is worse, the spatial CV model likely provides a more realistic prediction on new regions given the way it was trained, making it, in our opinion, the superior model.
+We used spatial cross validation to create training and testing sets that account for the fact that census tracts next to each other in our dataset likely have similar values. Inclusion of some census tracts in the training data that are right next to census tracts in the testing data could therefore bias model performance. So a model trained on spatially cross validated data evaluated using data that is geographically distant from the training set should in theory be more robust. We would expect the R squared values to be lower and the RMSE values to be higher for the spatially cross validated model. While the RMSE values were higher for the spatially cross validated model, in line with our prediction, interestingly, this was not the case for the R squared values–compared to a model that was training on randomly split data (see appendix: 80/20 train test- roughly the same proportion of the total census tracts as the Spatial CV train test), the spatial CV model has a higher R squared. This could potentially be caused by the random split model over-fitting to regions that generalize poorly to the new regions. Even though the RMSE value is worse, the spatial CV model likely provides a more realistic prediction on new regions given the way it was trained, making it, in our opinion, the superior model.
 
 **Limitations and Future Work**
 
 In terms of potential limitations or future changes of our analysis methods, it would be interesting to incorporate even more geographical regions as there are many states that currently have significant levels of lead exposure. Perhaps there are broader patterns we're not seeing with a focus on California alone. Alternatively, it would be interesting to see the same analysis except on California counties instead of tracts to easily relate county-specific traits which might be more stable to our conclusions. A potential limitation of our current analysis is the way that we measure blood lead levels of a county. We used the test levels of children to relate to imprisonment rates of individuals that are likely older, making this indicator a bit unreliable in terms of measuring the exposure rate for individuals currently imprisoned.
+
+\pagebreak
 
 ## **Appendix**
 
