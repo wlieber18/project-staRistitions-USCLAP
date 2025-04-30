@@ -139,44 +139,50 @@ This research topic has important societal implications, namely the complicated 
 
 ## Our Data
 
-We've chosen to create our dataframe from a variety of census data relating to California in 2020. Our data looks at different California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. For our analysis, we are particularly focused on perc_bll_indicator, med_income, our age and race variables and how well they can predict imprisonment_rt. The demographic data was collected through the Census data collection process which involves online surveys, in-person questionnaires, and is self-reported. The blood lead level data was compiled using the mandatory reported data entered by laboratories and healthcare workers. The data was sorted into census tracts based on reported street address and observations deemed false positive or false negative by the California Department of Public Health (CDPH) have been omitted. To clean the data, we joined each dataset to each other based on census tract and renamed columns for clarity. In addition, we calculated new columns to simplify categories (i.e. age ranges, ethnicity) and omitted fields which would not be relevant for this investigation.
+We've chosen to create our dataframe from a variety of census data relating to California in 2020. Our data looks at different California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. For our analysis, we are particularly focused on `perc_bll_indicator`, `med_income`, our age and race variables and how well they can predict `imprisonment_rt`. The demographic data was collected through the Census data collection process which involves online surveys, in-person questionnaires, and is self-reported. The blood lead level data was compiled using the mandatory reported data entered by laboratories and healthcare workers. The data was sorted into census tracts based on reported street address and observations deemed false positive or false negative by the California Department of Public Health (CDPH) have been omitted. To clean the data, we joined each dataset to each other based on census tract and renamed columns for clarity. In addition, we calculated new columns to simplify categories (i.e. age ranges, ethnicity) and omitted fields which would not be relevant for this investigation.
 
-**Note:** All figures referenced throughout the report can be found in the Appendix section below.
+**Note:** Figures referenced throughout the report can be found in the Appendix section.
 
 ### **Univariate Data Exploration**
 
 ```{r}
-#| label: lead-dist-code
-#| echo: false
-#| fig-show: hide
+#| label: lead-dist-code-show
+#| fig.cap: "Distribution of lead in children"
+#| fig.height: 3
+#| fig.width: 5
 
 bll_limit <- quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
 
 bll_data |>
   ggplot(aes(x = perc_bll_indicator)) +
-  geom_histogram(color = "black", fill = "lightblue4") +
+  geom_histogram(color = "black", fill = "steelblue3") +
   scale_x_continuous(limits = c(0, 12.5)) +
   scale_y_continuous(limits = c(0, 1000)) +
   labs(
-    title = "Distribution of Children Under 6 
+    title = "Distribution of Children Under 6
 with High Blood Lead Levels in CA",
     subtitle = "by Census Tract",
     x = "Children under 6 with a BLL ≥3.5 µg/dL (%)",
     y = "Count",
-    caption = "Capturing ~99% of data"
+    caption = "~99% data captured"
   ) +
   theme_classic()
 
 bll_med <- median(bll_data$perc_bll_indicator, na.rm = TRUE)
-bll_iqr <- IQR(bll_data$bll_indicator, na.rm = TRUE)
+bll_iqr <- IQR(bll_data$perc_bll_indicator, na.rm = TRUE)
 ```
 
 **Blood Lead Levels (Figure 1):** There are 94 census tracts that didn't test blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, there is a large concentration of census tracts that have a percent blood level indicator (bll) of 0 (1899 observations). While these should probably be included in the final analysis, removing these for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is `r bll_med` and the IQR is `r bll_iqr`.
 
+![Spatial Distribution of BLL in California](data/Layout.png){alt="Figure 4: Spatial Distribution of BLL in California" width="200"}
+
+**Spatial Distribution (Figure 2):** Given the spatial nature of this investigation, it is important to understand how the reported lead levels vary across the state. This map shows that there are contiguous series of tracts, especially in the Los Angeles region, where there may be spatial correlation. This is not surprising, as we expect water conditions across tracts to be similar.
+
 ```{r}
-#| label: carc-dist-code
-#| echo: false
-#| fig-show: hide
+#| label: carc-dist-code-plot-show
+#| fig-cap: Distribution of Incarceration Rates in CA Census Tracts
+#| fig.height: 3
+#| fig.width: 5
 
 carc_limit <- quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
 
@@ -222,23 +228,19 @@ inc_med <- median(bll_data$med_income, na.rm = TRUE)
 inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 ```
 
-**Incarceration Rate (Figure 2):** After removing extreme outliers (the top 1% incarceration rates - some may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000 with an IQR of `r carc_iqr`. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
+**Incarceration Rate (Figure 3):** After removing extreme outliers (the top 1% incarceration rates - some may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000 with an IQR of `r carc_iqr`. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
 
-**Income (Figure 3):** The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
-
-**Spatial Distribution (Figure 4):** Given the spatial nature of this investigation, it is important to understand how the reported lead levels vary across the state. This map shows that there are contiguous series of tracts, especially in the Los Angeles region, where there may be spatial correlation. This is not surprising, as we expect water conditions across tracts to be similar.
+**Income (Figure 6):** The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
 
 ### **Bivariate Data Exploration**
 
 ```{r}
-#| label: bivariate-exploration-code
-#| Message: False
-#| Warning: False
-#| eval: false
-#| fig-show: hide
+#| label: bivariate-imprisonment-bll
+#| fig.cap: Imprisonment vs BLL Indicator
+#| fig.height: 3
+#| fig.width: 5
 
-
-ggprison <- bll_data %>% 
+bll_data %>% 
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
   filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm =
                                        TRUE)) %>% 
@@ -246,14 +248,18 @@ ggprison <- bll_data %>%
   filter(perc_bll_indicator != 0) %>%
   ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
   geom_point(alpha = 0.6, size = 0.6, color = "lightblue4") +
-  geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.6, color = "black", linetype = 2) +
   labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
        y = "Imprisonment Rate",
        x = "Percentage with BLL Indicator",
        caption = "Filtering out tracts who either had perc_bll_indicatr = 0% or that tested 0 people") +
   theme_classic()
 
+```
 
+```{r}
+#| label: bivariate-exploration-code
+#| fig-show: hide
 
 ggincome <- bll_data %>% 
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
@@ -281,21 +287,18 @@ ggage<- bll_data %>%
        x = "Percentage of population age 15-29") +
   theme_classic()  
 
-ggprison + ggage
-ggincome
 ```
 
-**Imprisonment vs BLL Indicator (Figure 5):** Imprisonment rate and the percentage of a census tract with a high bll has a weak positive correlation - at first glance, the bll indicator doesn't seem to have significant explanatory power for the variability in a census tract's imprisonment rate.
+**Imprisonment vs BLL Indicator (Figure 4):** Imprisonment rate and the percentage of a census tract with a high bll has a weak positive correlation - at first glance, the bll indicator doesn't seem to have significant explanatory power for the variability in a census tract's imprisonment rate.
 
-**Imprisonment vs Median Income (Figure 6):** Imprisonment rate and median income has a generally negative correlation. This isn't surprising as it is generally understood that a lack of resources, including financial, can be a driving force towards engaging in illegal activities.
+**Imprisonment vs Median Income (Figure 7):** Imprisonment rate and median income has a generally negative correlation. This isn't surprising as it is generally understood that a lack of resources, including financial, can be a driving force towards engaging in illegal activities.
 
-**Imprisonment vs Population Aged 15-29 (Figure 7):** Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation. This isn't surprising as it's generally understood that one's likekihood to engage in illegal activieis is higher as an adolescent.
+**Imprisonment vs Population Aged 15-29 (Figure 8):** Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation. This isn't surprising as it's generally understood that one's likekihood to engage in illegal activieis is higher as an adolescent.
 
-**Potential Interactions (Figure 8):**
+**Potential Interactions (Figure 9):**
 
 ```{r}
 #| label: interaction-effects-code
-#| echo: false
 #| fig-show: hide
 
 bll_data <- bll_data %>%
@@ -331,6 +334,7 @@ For our analysis process, we iterated through different models until we were sat
 
 ```{r}
 #| label: intial-conditions
+#| fig.cap: Initial model output
 
 #filtering data points where num_bll = 0
 bll_data_checking <- bll_data %>% 
@@ -370,7 +374,7 @@ full_model_aug |>
 #There does not appear to be too much multicollinearity.
 ```
 
-Using the residual vs fitted plot **(Figure 9),** we can assess the model conditions. From this graph, we find
+Using the residual vs fitted plot **(Figure 10),** we can assess the model conditions. From this graph, we find
 
 1.  Normality condition can be relaxed.
 2.  Linearity condition not satisfied. Points not randomly scattered around the x = 0 line.
@@ -470,10 +474,7 @@ bll_data_geo <- bll_data_geo %>%
 
 ```{r}
 #| label: spatial-cross-validation
-#| message: FALSE
-#| warning: FALSE
 #| include: FALSE
-#| echo: FALSE
 
 #If training census tracts are next to testing census tracts, this could create spatial bias in the model. To address this, we employed spatial cross validation, which splits the data into folds that are distant from each other.
 
@@ -504,9 +505,8 @@ bll_data_geo$fold <- spatial_folds$foldID
 
 ```{r}
 #| label: plotting-lead-levels
-#| echo: false
 #| progress: false
-#| message: false
+#| fig.cap: Spatial lead level category distribution
 
 bll_data_geo <- bll_data_geo %>%
   mutate(lead_category = case_when(
@@ -528,7 +528,7 @@ ggplot(bll_data_geo) +
 
 ### Final Model Selection
 
-With our transformed variables, we got a better residuals plot (figure 10) with only a single outlier. From there, we arrived at our final model using stepwise selection on our 80/20 split data to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statiscitaly significant in this model.
+With our transformed variables, we got a better residuals plot **(Figure 11)** with only a single outlier. From there, we arrived at our final model using stepwise selection on our 80/20 split data to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statiscitaly significant in this model.
 
 ```{r}
 #| label: splitting
@@ -581,6 +581,7 @@ tidy(log_model_actual) %>%
 
 ```{r}
 #| label: model-selection
+#| fig.cap: Final Model output 
 
 library(MASS)
 
@@ -691,53 +692,8 @@ bll_data_geo %>%
 ### **Univariate EDA**
 
 ```{r}
-#| label: lead-dist-plot
-#| fig.cap: "Figure 1: Distribution of lead in children"
-
-bll_limit <- quantile(bll_data$perc_bll_indicator, 0.99, na.rm = TRUE)
-
-bll_data |>
-  ggplot(aes(x = perc_bll_indicator)) +
-  geom_histogram(color = "black", fill = "steelblue3") +
-  scale_x_continuous(limits = c(0, 12.5)) +
-  scale_y_continuous(limits = c(0, 1000)) +
-  labs(
-    title = "Distribution of Children Under 6
-with High Blood Lead Levels in CA",
-    subtitle = "by Census Tract",
-    x = "Children under 6 with a BLL ≥3.5 µg/dL (%)",
-    y = "Count",
-    caption = "Figure 1"
-  ) +
-  theme_classic()
-
-bll_med <- median(bll_data$perc_bll_indicator, na.rm = TRUE)
-bll_iqr <- IQR(bll_data$bll_indicator, na.rm = TRUE)
-```
-
-```{r}
-#| label: carc-dist
-
-carc_limit <- quantile(bll_data$imprisonment_rt, 0.99, na.rm = TRUE)
-
-bll_data %>%
-  ggplot(aes(x = imprisonment_rt)) +
-  geom_histogram(color = "black", fill = "steelblue3") +
-  scale_x_continuous(limits = c(0, 1250)) +
-  labs(
-    title = "Distribution of Imprisonment Rates in CA",
-    subtitle = "per 100,000 by Census Tract",
-    x = "Imprisonment Rate (per 100,000)",
-    y = "Count",
-    caption = "Figure 2"
-  ) + theme_classic()
-
-carc_med <- median(bll_data$imprisonment_rt, na.rm = TRUE)
-carc_iqr <- IQR(bll_data$imprisonment_rt, na.rm = TRUE)
-```
-
-```{r}
 #| label: income-code-plot
+#| fig-cap: Income distribution in CA Census Tracts
 
 inc_limit <- quantile(bll_data$med_income, 0.99, na.rm = TRUE)
 
@@ -750,42 +706,18 @@ bll_data |>
     title = "Distribution of Median Income in CA",
     subtitle = "by Census Tract",
     x = "Median Income ($)",
-    y = "Count",
-    caption = "Figure 3"
+    y = "Count"
   ) + theme_classic()
 
 inc_med <- median(bll_data$med_income, na.rm = TRUE)
 inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 ```
 
-![Figure 4: Spatial Distribution of BLL in California](data/Layout.png){width="400"}
-
 ### Bivariate EDA
 
 ```{r}
-#| label: bivariate-exploration
-#| Message: False
-#| Warning: False
-
-bll_data %>%
-  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
-  filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm =
-                                       TRUE)) %>%
-  filter(num_bll != 0) %>%
-  filter(perc_bll_indicator != 0) %>%
-  ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
-  geom_point(alpha = 0.6, size = 0.6, color = "steelblue3") +
-  geom_smooth(method = "lm", se = FALSE, size = 0.8, color = "black", linetype = 2) +
-  labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
-       y = "Imprisonment Rate",
-       x = "Percentage with BLL Indicator",
-       caption = "Figure 5"
-       ) +
-  theme_classic()
-
-#Filtering out tracts who either had perc_bll_indicatr = 0% or that tested 0 people
-
-
+#| label: bivariate-imp-med-income
+#| fig-cap: Imprisonment vs Median Income
 
 bll_data %>%
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
@@ -797,9 +729,14 @@ bll_data %>%
   labs(title = "Imprisonment Rate vs. Median Income",
        y = "Imprisonment Rate",
        x = "Median Income",
-       caption = "Figure 6"
        ) +
   theme_classic()
+
+```
+
+```{r}
+#| label: bivariate-exploration
+#| fig-cap: Imprisonment Rate vs Adolescent Population
 
 bll_data %>%
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
@@ -811,13 +748,13 @@ bll_data %>%
   labs(title = "Imprisonment Rate vs. percentage age 15-29",
        y = "Imprisonment Rate",
        x = "Percentage of population age 15-29",
-       caption = "Figure 7"
        ) +
   theme_classic()  
 ```
 
 ```{r}
 #| label: interaction-effects-plot
+#| fig-cap: Relationship between race, income, and imprisonment
 
 bll_data <- bll_data %>%
   mutate(POC_other = black + native_am + other_race, 
@@ -838,7 +775,6 @@ bll_data %>%
     x = "Median Income",
     y = "Imprisonment Rate",
     color = "Above or below median",
-    caption = "Figure 8"
   ) +
   scale_color_manual(values = c("steelblue3", "mediumorchid"))+
   theme_minimal()
@@ -846,6 +782,7 @@ bll_data %>%
 
 ```{r}
 #| label: residual-plot-initial
+#| fig-cap: Residual plot of initial modeling output
 
 #there is one point with a residual so large the graph is not readable if we keep it. Filtering it out.
 full_model_aug |>
@@ -858,7 +795,6 @@ full_model_aug |>
     title = "Initial Model: Residuals vs Fitted Values",
     x = "Fitted",
     y = "Standardized Residuals",
-    caption = "Figure 9"
   )
 
 vif_fm <- vif(bll_full_model)
@@ -869,6 +805,7 @@ vif_fm
 
 ```{r}
 #| label: residual-plot-final
+#| fig-cap: Residual plot of final modeling output
 #choosing interaction model
 
 log_model_actual <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
@@ -885,7 +822,6 @@ log_model_actual_aug |>
     x = "Fitted Value",
     y = "Standardized Residual",
     color = "Cook's Distance",
-    caption = "Figure 10"
   ) +
   scale_color_viridis_c() +
   theme_minimal() 
