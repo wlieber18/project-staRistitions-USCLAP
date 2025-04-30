@@ -134,13 +134,14 @@ Studies in the past, such as one conducted by Talayero et al. (2023)^1^, have hi
 
 This research topic has important societal implications, namely the complicated intersection of crime, environmental racism, and more. It’s an ever relevant question today and we hope to come to meaningful conclusions by the end of our analysis. Our initial hypothesis is that there is a positive relationship between water lead levels and the rate of incarceration with the existence of other interaction effects from things such as race and income. However, we acknowledge the intricate combination of social and institutional factors that increases one's likelihood of incarceration and are understand the possibility for inconclusive findings with the focus on lead exposure.
 
+\
+1. [The association between lead exposure and crime: A systematic review](https://pmc.ncbi.nlm.nih.gov/articles/PMC10393136/#pgph.0002177.ref019)
+
 ## Our Data
 
 We've chosen to create our dataframe from a variety of census data relating to California in 2020. Our data looks at different California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. For our analysis, we are particularly focused on perc_bll_indicator, med_income, our age and race variables and how well they can predict imprisonment_rt. The demographic data was collected through the Census data collection process which involves online surveys, in-person questionnaires, and is self-reported. The blood lead level data was compiled using the mandatory reported data entered by laboratories and healthcare workers. The data was sorted into census tracts based on reported street address and observations deemed false positive or false negative by the California Department of Public Health (CDPH) have been omitted. To clean the data, we joined each dataset to each other based on census tract and renamed columns for clarity. In addition, we calculated new columns to simplify categories (i.e. age ranges, ethnicity) and omitted fields which would not be relevant for this investigation.
 
 **Note:** All figures referenced throughout the report can be found in the Appendix section below.
-
-\pagebreak
 
 ### **Univariate Data Exploration**
 
@@ -223,7 +224,7 @@ inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 
 **Incarceration Rate (Figure 2):** After removing extreme outliers (the top 1% incarceration rates - some may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000 with an IQR of `r carc_iqr`. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
 
-**Income (Figure 3):** The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r_inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
+**Income (Figure 3):** The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
 
 **Spatial Distribution (Figure 4):** Given the spatial nature of this investigation, it is important to understand how the reported lead levels vary across the state. This map shows that there are contiguous series of tracts, especially in the Los Angeles region, where there may be spatial correlation. This is not surprising, as we expect water conditions across tracts to be similar.
 
@@ -320,9 +321,11 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
   theme_minimal()
 ```
 
-There appears to be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a categorical variable for the percentage of a census tract population that is non-White that is above and below the median in the data. The relationship between imprisonment rate and income appears more negatively correlated when the percentatge of non-white people in the census tract is above the mean.
+There appears to be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a variable, POC_other, indicating the percentage of a census tract population that is non-White. In this figure we categorized tracts with POC_other values that were above and below the median in the data of this variable to create a categorical split. The relationship between imprisonment rate and income appears more negatively correlated when the percentatge of non-white people in the census tract is above the median.
 
-## Methodology
+## Methodology and Results
+
+For our analysis process, we iterated through different models until we were satisfied with its conditions and performance. As an initial model, we did simple linear regression to predict a census tract’s imprisonment rate using bll indicator variable, racial makeup, median income, median age, the percentage of males, and the interaction between income and race. The model output and conditions are below:
 
 ### **Checking Initial Modelling Conditions**
 
@@ -361,8 +364,8 @@ full_model_aug |>
     y = "Standardized Residuals"
   )
 
-vif_fm <- vif(bll_full_model)
-vif_fm
+#vif_fm <- vif(bll_full_model)
+#vif_fm
 
 #There does not appear to be too much multicollinearity.
 ```
@@ -374,19 +377,23 @@ Using the residual vs fitted plot **(Figure 9),** we can assess the model condit
 3.  Constant variance condition not satisfied. Points fan out across the x = 0 line.
 4.  Independence condition also may not be satisfied. Census tracts next to each other could be more likely to have similar incarceration rates or blood lead levels.
 
+Based on these initial conditions, we decided it would make sense to log transform some of our variables, specifically our median income and imprisonment rate variables
+
 ```{r}
 #| label: condition-checking
+#| fig-show: hide
 #Now going to check for the need to transform any variables
 
 bll_data_checking %>% 
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
 filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>% 
  select(imprisonment_rt, perc_bll_indicator, med_income, median_age) %>%
- ggpairs()
+ ggpairs(lower = list(continuous = wrap("points", size = 0.3)))
 ```
 
 ```{r}
 #| label: log_transformation
+#| fig-show: hide
 #used +1 to avoid log(0) issues? Idk that was new for me and not sure we need to keep it.
 bll_data_transformed <- bll_data_checking %>%
   mutate(
@@ -411,8 +418,8 @@ log_model_checking_aug |>
   )
 
 
-vif_fm_log <- vif(log_model_checking)
-vif_fm_log
+#vif_fm_log <- vif(log_model_checking)
+#vif_fm_log
 
 #Stripe is gone- happened after removing census tracts where imprisonment rate is equal to zero. We can leave the stripe in for this analysis and attribute it to these tracts.
 
@@ -420,7 +427,9 @@ vif_fm_log
 
 **Splitting the Data**
 
-We were concerned about spatial correlation, so originally split the data with 20% in training and 80% testing to minimize this effect. We received abysmal R squared values when doing this. We are going to perform a form of cross validation called spatial cross validation to address model overfitting and independence issues within our data. Because we are addressing the independence problem using this method, we can now do 80% training and 20% testing. For this, we used ChatGPT to suggest solutions. It suggested spatial cross validation, which we researched further using this source: https://r.geocompx.org/spatial-cv
+We were also concerned about spatial correlation amongst census tracts especially since there can be multiple within a single county meaning they would share a lot of features. So we originally split the data with 20% in training and 80% testing to minimize this effect. We received abysmal R squared values when doing this. Using ChatGPT for suggestions, it recommended spatial cross validation, which we researched further to ensure it made sense for our analysis^2^. It appeared to be a feasible method to address model overfitting and independence issues within our data. Because of that, we were then able to do a 80% training, 20% testing split.
+
+2\. [Geocomputation with R](https://r.geocompx.org/spatial-cv)
 
 ```{r}
 #| label: loading-required-packages
@@ -516,6 +525,8 @@ ggplot(bll_data_geo) +
     fill = "Lead Level Category"
   ) 
 ```
+
+### Final Model Selection
 
 ```{r}
 #| label: splitting
@@ -668,6 +679,8 @@ bll_data_geo %>%
   arrange(fold) %>%
   kable(digits = 0, caption = "Sample Size per Spatial Fold")
 ```
+
+## Discussion
 
 ## **Appendix**
 
