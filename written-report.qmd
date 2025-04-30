@@ -174,7 +174,7 @@ bll_iqr <- IQR(bll_data$perc_bll_indicator, na.rm = TRUE)
 
 **Blood Lead Levels (Figure 1):** There are 94 census tracts that didn't test blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, there is a large concentration of census tracts that have a percent blood level indicator (bll) of 0 (1899 observations). While these should probably be included in the final analysis, removing these for data visualization produces a unimodal distributon that is heavily right skewed. Overall, the median blood level is `r bll_med` and the IQR is `r bll_iqr`.
 
-![Spatial Distribution of BLL in California](data/Layout.png){alt="Figure 4: Spatial Distribution of BLL in California" width="200"}
+![Figure 4: Spatial Distribution of BLL in California](data/Layout.png){width="200"}
 
 **Spatial Distribution (Figure 2):** Given the spatial nature of this investigation, it is important to understand how the reported lead levels vary across the state. This map shows that there are contiguous series of tracts, especially in the Los Angeles region, where there may be spatial correlation. This is not surprising, as we expect water conditions across tracts to be similar.
 
@@ -381,7 +381,7 @@ Using the residual vs fitted plot **(Figure 10),** we can assess the model condi
 3.  Constant variance condition not satisfied. Points fan out across the x = 0 line.
 4.  Independence condition also may not be satisfied. Census tracts next to each other could be more likely to have similar incarceration rates or blood lead levels.
 
-Based on these initial conditions, we decided it would make sense to log transform some of our variables, specifically our median income and imprisonment rate variables
+Based on these initial conditions, we decided it would make sense to log transform some of our variables, specifically our median income and imprisonment rate variables.
 
 ```{r}
 #| label: condition-checking
@@ -606,7 +606,7 @@ stepwise_model_forced <- stepAIC(
 ```
 
 ```{r}
-#| label: model-evaluation
+#| label: final-model-evaluation
 
 log_predictions <- predict(log_model_actual, newdata = bll_test)
 
@@ -627,55 +627,8 @@ metrics_table %>%
 ```
 
 ```{r}
-#| label: checking-effects-of-block-CV
-#| fig-show: hide
-
-#how do we know that the spatial CV successfully addressed the independence problem?
-#We would expect the models to be worse predictors on the spatial CV data. 
-
-#randomly split data
-
-set.seed(210)
-random_split <- initial_split(bll_data_geo, prop = 0.8)
-bll_train_random <- training(random_split)
-bll_test_random  <- testing(random_split)
-
-log_model_actual2 <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
-                POC_other + median_age + perc_male + POC_other * log_med_income, data = bll_train_random)
-
-stepwise_model_forced2 <- stepAIC(
-  log_model_actual2,
-  scope = list(
-    lower = ~ perc_bll_indicator, 
-    upper = ~ log_med_income + perc_bll_indicator + POC_other + median_age + perc_male + POC_other * log_med_income
-  ),
-  direction = "both",
-  trace = 1
-)
-
-log_predictions2 <- predict(log_model_actual2, newdata = bll_test_random)
-
-bll_test_random <- bll_test_random %>%
-  mutate(imprisonment_rate = exp(log_imprisonment_rt))
-
-bll_test_results2 <- bll_test_random %>%
-  mutate(predicted = exp(log_predictions2)) %>%
-  dplyr::select(imprisonment_rate, predicted)
-
-metrics_table <- bll_test_results2 %>%
-  yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>% 
-  filter(.metric %in% c("rmse", "rsq"))
-
-metrics_table %>%
-  kable(digits = 3, caption = "Random-Split Model Performance (RMSE and R-squared)")
-
-#the R squared value for the random split is higher, which is odd.
-  
-```
-
-```{r}
-summary(log_model_actual)$r.squared
-summary(log_model_actual2)$r.squared
+#summary(log_model_actual)$r.squared
+#summary(log_model_actual2)$r.squared
 ```
 
 ```{r, eval = FALSE}
@@ -686,6 +639,10 @@ bll_data_geo %>%
 ```
 
 ## Discussion
+
+Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship based on existing research linking lead exposure to increased criminial tendencies. We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and financial demographic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate while, income, age, and the interaction between income and race came out as our most significant predictors. We understand that the circumstances surrounding once likelihood of being imprisoned are complex and based on our analysis it appears that lead exposure isn't a particularly useful metric. General discourse on this topic seems to reveal that differing results in studies may be due to the overstated effect of lead exposure on incarceration rate or at the very least, it's not a useful metric on its own.
+
+In terms of potential limitations or future changes of our analysis methods, it would be interesting to incorporate even more geographical regions as there are many states that currently have significant levels of lead exposure.
 
 ## **Appendix**
 
@@ -833,4 +790,49 @@ log_model_actual_aug |>
 tidy(log_model_actual) %>% 
   kable(digits = 3)
 
+```
+
+```{r}
+#| label: checking-effects-of-block-CV-model-2
+
+#how do we know that the spatial CV successfully addressed the independence problem?
+#We would expect the models to be worse predictors on the spatial CV data. 
+
+#randomly split data
+
+set.seed(210)
+random_split <- initial_split(bll_data_geo, prop = 0.8)
+bll_train_random <- training(random_split)
+bll_test_random  <- testing(random_split)
+
+log_model_actual2 <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male + POC_other * log_med_income, data = bll_train_random)
+
+stepwise_model_forced2 <- stepAIC(
+  log_model_actual2,
+  scope = list(
+    lower = ~ perc_bll_indicator, 
+    upper = ~ log_med_income + perc_bll_indicator + POC_other + median_age + perc_male + POC_other * log_med_income
+  ),
+  direction = "both",
+  trace = 0
+)
+
+log_predictions2 <- predict(log_model_actual2, newdata = bll_test_random)
+
+bll_test_random <- bll_test_random %>%
+  mutate(imprisonment_rate = exp(log_imprisonment_rt))
+
+bll_test_results2 <- bll_test_random %>%
+  mutate(predicted = exp(log_predictions2)) %>%
+  dplyr::select(imprisonment_rate, predicted)
+
+metrics_table <- bll_test_results2 %>%
+  yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>% 
+  filter(.metric %in% c("rmse", "rsq"))
+
+#metrics_table %>%
+#  kable(digits = 3, caption = "Random-Split Model Performance (RMSE and R-squared)")
+
+#the R squared value for the random split is higher, which is odd.
 ```
