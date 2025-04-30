@@ -288,9 +288,9 @@ ggincome
 
 **Imprisonment vs BLL Indicator (Figure 5):** Imprisonment rate and the percentage of a census tract with a high bll has a generally positive correlation.
 
-**Imprisonment vs BLL Indicator (Figure 6):** Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation.
+**Imprisonment vs Median Income (Figure 6):** Imprisonment rate and median income has a generally negative correlation.
 
-**Imprisonment vs Median Income (Figure 7):** Imprisonment rate and median income has a generally negative correlation.
+**Imprisonment vs Population Aged 15-29 (Figure 7):** Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation.
 
 **Potential Interactions (Figure 8):**
 
@@ -324,11 +324,10 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
 
 When comparing the relationship between median income and imprisonment rate, it appears that generally they have a negative correlation. This graph suggests there could be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a categorical variable for the percentage of the census tract population that is black, native american, or "other race" that is categorically above or below the median in the data. The relationship between imprisonment rate and median income appears more negatively correlated when categorically above the median census tract population percentage of black, native american, and other_race. This supports that there could be an interaction effect between race and income.
 
-**Checking Initial Modelling Conditions (Figure**
+**Checking Initial Modelling Conditions**
 
 ```{r}
 #| label: intial-conditions
-library(knitr)
 
 #filtering data points where num_bll = 0
 bll_data_checking <- bll_data %>% 
@@ -342,6 +341,12 @@ kable(digits = 3)
 set.seed(210)
 
 full_model_aug <- augment(bll_full_model)
+
+```
+
+```{r}
+#| label: residual-plot-code-1
+#| fig-show: hide
 
 #there is one point with a residual so large the graph is not readable if we keep it. Filtering it out.
 full_model_aug |>
@@ -360,8 +365,9 @@ vif_fm <- vif(bll_full_model)
 vif_fm
 
 #There does not appear to be too much multicollinearity.
-
 ```
+
+Using the residual vs fitted plot **(Figure 9),** we can assess the model conditions. From this graph, we find
 
 1.  Normality condition can be relaxed.
 2.  Linearity condition not satisfied. Points not randomly scattered around the x = 0 line.
@@ -665,7 +671,7 @@ bll_data_geo %>%
 
 ## **Appendix**
 
-### **EDA**
+### **Univariate EDA**
 
 ```{r}
 #| label: lead-dist-plot
@@ -737,6 +743,8 @@ inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 
 ![Figure 4: Spatial Distribution of BLL in California](data/Layout.png){width="400"}
 
+### Bivariate EDA
+
 ```{r}
 #| label: bivariate-exploration
 #| Message: False
@@ -754,7 +762,7 @@ bll_data %>%
   labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
        y = "Imprisonment Rate",
        x = "Percentage with BLL Indicator",
-       caption = "Figure 4"
+       caption = "Figure 5"
        ) +
   theme_classic()
 
@@ -772,11 +780,9 @@ bll_data %>%
   labs(title = "Imprisonment Rate vs. Median Income",
        y = "Imprisonment Rate",
        x = "Median Income",
-       caption = "Figure 5"
+       caption = "Figure 6"
        ) +
   theme_classic()
-
-
 
 bll_data %>% 
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>% 
@@ -788,7 +794,7 @@ bll_data %>%
   labs(title = "Imprisonment Rate vs. percentage age 15-29",
        y = "Imprisonment Rate",
        x = "Percentage of population age 15-29",
-       caption = "Figure 6"
+       caption = "Figure 7"
        ) +
   theme_classic()  
 ```
@@ -815,7 +821,30 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
     x = "Median Income",
     y = "Imprisonment Rate",
     color = "Above or below median",
-    caption = "Figure 7"
+    caption = "Figure 8"
   ) +
   theme_minimal()
+```
+
+```{r}
+#| label: residual-plot-1
+
+#there is one point with a residual so large the graph is not readable if we keep it. Filtering it out.
+full_model_aug |>
+  filter(.rownames != 2421) %>% 
+  filter(.std.resid < 80) %>% 
+  ggplot(aes(x = .fitted, y = .std.resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Residuals vs Fitted Values",
+    x = "Fitted",
+    y = "Standardized Residuals",
+    caption = "Figure 9"
+  )
+
+vif_fm <- vif(bll_full_model)
+vif_fm
+
+#There does not appear to be too much multicollinearity.
 ```
