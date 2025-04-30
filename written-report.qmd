@@ -174,7 +174,7 @@ bll_iqr <- IQR(bll_data$perc_bll_indicator, na.rm = TRUE)
 
 **Blood Lead Levels (Figure 1):** There are 94 census tracts that didn't test blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, there is a large concentration of census tracts that have a percent blood level indicator (bll) of 0 (1899 observations). While these should probably be included in the final analysis, removing these for data visualization produces a unimodal distribution that is heavily right skewed. Overall, the median blood level is `r bll_med` and the IQR is `r bll_iqr`.
 
-![Figure 4: Spatial Distribution of BLL in California](data/Layout.png){width="200"}
+![ Spatial Distribution of BLL in California](data/Layout.png){width="200"}
 
 **Spatial Distribution (Figure 2):** Given the spatial nature of this investigation, it is important to understand how the reported lead levels vary across the state. This map shows that there are contiguous series of tracts, especially in the Los Angeles region, where there may be spatial correlation. This is not surprising, as we expect water conditions across tracts to be similar.
 
