@@ -1,5 +1,5 @@
 ---
-title: "Lead in the Water: The Effects of Blood Lead Levels on Incareration Rates"
+title: "Lead Exposure: Exploring Relationship between Blood Lead Levels and Incareration Rates"
 subtitle: A Socio-Spatial Analysis
 author: "staRstistions - Will Lieber, Wania Iftikhar Khan, AJ Tenser, Kami Akala"
 date: "April 30 2025"
@@ -503,7 +503,7 @@ bll_data_geo$fold <- spatial_folds$foldID
 
 ![Spatial Correlation in CA](data/ca_spatial_layout.png){width="300"}
 
-I DON'T KNOW WHAT THIS MAP SHOWS BUT WE SHOULD HAVE SOME DESCRIPTION TO GO WITH THIS MAP!
+This map shows the census tract within our data divided into five spatial blocks, each representing a fold used in spatial cross-validation. These blocks were generated with a block range of 100 km, ensuring that observations within each fold are spatially clustered and that training and testing sets are geographically separated. Each block is assigned an ID 1-5 and then used to partition the data into training and testing sets while minimizing spatial autocorrelation between them. The coloring on the map indicates fold membership, with neighboring census tracts grouped into the same spatial block whenever possible. Geographical distance is the only factor involved in generating the folds–other variables and their coefficients are not involved.
 
 ```{r}
 #| label: plotting-lead-levels
