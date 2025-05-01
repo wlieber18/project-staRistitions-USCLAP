@@ -230,7 +230,7 @@ inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 
 **Incarceration Rate (Figure 3):** After removing extreme outliers (the top 1% incarceration rates - some may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000 with an IQR of `r carc_iqr`. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
 
-**Income (Figure 6):** The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
+**Income (Figure 7):** The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
 
 ### **Bivariate Data Exploration**
 
@@ -291,9 +291,9 @@ ggage<- bll_data %>%
 
 **Imprisonment vs BLL Indicator (Figure 4):** Imprisonment rate and the percentage of a census tract with a high bll has a weak positive correlation - at first glance, the bll indicator doesn't seem to have significant explanatory power for the variability in a census tract's imprisonment rate.
 
-**Imprisonment vs Median Income (Figure 7):** Imprisonment rate and median income has a generally negative correlation. This isn't surprising as it is generally understood that a lack of resources, including financial, can be a driving force towards engaging in illegal activities.
+**Imprisonment vs Median Income (Figure 8):** Imprisonment rate and median income has a generally negative correlation. This isn't surprising as it is generally understood that a lack of resources, including financial, can be a driving force towards engaging in illegal activities.
 
-**Imprisonment vs Population Aged 15-29 (Figure 8):** Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation. This isn't surprising as it's generally understood that one's likelihood to engage in illegal activities is higher as an adolescent.
+**Imprisonment vs Population Aged 15-29 (Figure 9):** Imprisonment rate and percentage of population aged 15-29 in the census tract has a generally positive correlation. This isn't surprising as it's generally understood that one's likelihood to engage in illegal activities is higher as an adolescent.
 
 ```{r}
 #| label: interaction-effects-code
@@ -322,7 +322,7 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
   theme_minimal()
 ```
 
-**Potential Interactions (Figure 9):** There appears to be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a variable, POC_other, indicating the percentage of a census tract population that is non-White. In this figure we categorized tracts with POC_other values that were above and below the median in the data of this variable to create a categorical split. The relationship between imprisonment rate and income appears more negatively correlated when the percentage of non-white people in the census tract is above the median.
+**Potential Interactions (Figure 10):** There appears to be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a variable, POC_other, indicating the percentage of a census tract population that is non-White. In this figure we categorized tracts with POC_other values that were above and below the median in the data of this variable to create a categorical split. The relationship between imprisonment rate and income appears more negatively correlated when the percentage of non-white people in the census tract is above the median.
 
 ## Methodology and Results
 
@@ -372,7 +372,7 @@ full_model_aug |>
 #There does not appear to be too much multicollinearity.
 ```
 
-Using the residual vs fitted plot **(Figure 10),** we can assess the model conditions. From this graph, we find
+Using the residual vs fitted plot **(Figure 11),** we can assess the model conditions. From this graph, we find
 
 1.  Normality condition can be relaxed.
 2.  Linearity condition not satisfied. Points not randomly scattered around the x = 0 line.
@@ -530,7 +530,7 @@ ggplot(bll_data_geo) +
 
 ### Final Model Selection
 
-With our transformed variables, we got a better residuals plot **(Figure 11)** with only a single outlier. From there, we arrived at our final model using step-wise selection on our 80/20 split data to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statistically significant in this model.
+With our transformed variables, we got a better residuals plot **(Figure 12)** with only a single outlier. From there, we arrived at our final model using step-wise selection on our 80/20 split data to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statistically significant in this model.
 
 ```{r}
 #| label: splitting
