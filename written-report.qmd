@@ -434,7 +434,7 @@ We were also concerned about spatial correlation among census tracts because it 
 
 \pagebreak
 
-It appeared to be a feasible method to address model over-fitting and independence issues within our data. Because of that, we were then able to do a 80% training, 20% testing split.
+It appeared to be a feasible method to address model over-fitting and independence issues within our data. Using this method we split our data into 5 blocks then able to do a 80% training, 20% testing split.
 
 ```{r}
 #| label: loading-required-packages
@@ -533,7 +533,7 @@ ggplot(bll_data_geo) +
 
 ### Final Model Selection
 
-With our transformed variables, we got a better residuals plot **(Figure 12)** with only a single outlier. From there, we arrived at our final model using step-wise selection on our 80/20 split data to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statistically significant in this model.
+With our transformed variables, we got a better residuals plot **(Figure 12)** with only a single outlier. From there, we arrived at our final model using step-wise selection to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statistically significant in this model. We elected to keep blood lead level in the model because it was our variable of interest.
 
 ```{r}
 #| label: splitting
@@ -645,7 +645,7 @@ bll_data_geo %>%
 
 ## Discussion
 
-Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship between blood lead levels based on existing research linking lead exposure to increased "criminal behaviour". We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and socioeconimic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate while, income, age, and the interaction between income and race were the most significant predictors. We understand that the circumstances surrounding one's likelihood of being imprisoned are complex and this is only a single analysis where lead exposure wasn't a particularly useful metric. While there do exist studies that come to differing conclusions, generaldiscourse on this topic seems to reveal that differing results may be due to the misunderstood or overstated effect of lead exposure on incarceration rate, or at the very least, it's not a useful metric on its own.
+Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship between blood lead levels based on existing research linking lead exposure to increased "criminal behaviour". We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and socioeconimic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate (0.296 \> 0.05) while, income, age, and the interaction between income and race were the most significant predictors. We understand that the circumstances surrounding one's likelihood of being imprisoned are complex and this is only a single analysis where lead exposure wasn't a particularly useful metric. Other factors, like median income (\~0 \< 0.05), were far more impactful: for every, 1% increase in median income the model predicts a 0.663% decrease in incarceration rate, on average, holding all else constant. While there do exist studies that come to differing conclusions, general discourse on this topic seems to reveal that differing results may be due to the misunderstood or overstated effect of lead exposure on incarceration rate, or at the very least, it's not a useful metric on its own.
 
 **Interesting Insights**
 
