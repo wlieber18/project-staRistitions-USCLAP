@@ -174,7 +174,7 @@ bll_iqr <- IQR(bll_data$perc_bll_indicator, na.rm = TRUE)
 
 **Blood Lead Levels (Figure 1):** There are 94 census tracts that didn't test blood lead levels in this data. These will likely need to be removed because these observations are not useful in the analysis. Additionally, there is a large concentration of census tracts that have a percent blood level indicator (bll) of 0 (1899 observations). While these should probably be included in the final analysis, removing these for data visualization produces a unimodal distribution that is heavily right skewed. Overall, the median blood level is `r bll_med` and the IQR is `r bll_iqr`.
 
-![ Spatial Distribution of BLL in California](data/Layout.png){width="200"}
+![Spatial Distribution of BLL in California](data/Layout.png){width="200"}
 
 **Spatial Distribution (Figure 2):** Given the spatial nature of this investigation, it is important to understand how the reported lead levels vary across the state. This map shows that there are contiguous series of tracts, especially in the Los Angeles region, where there may be spatial correlation. This is not surprising, as we expect water conditions across tracts to be similar.
 
@@ -228,7 +228,7 @@ inc_med <- median(bll_data$med_income, na.rm = TRUE)
 inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 ```
 
-**Incarceration Rate (Figure 3):** After removing extreme outliers (the top 1% incarceration rates - some may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median incarceration rate is `r carc_med` out of 100,000 with an IQR of `r carc_iqr`. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
+**Imprisonment Rate (Figure 3):** After removing extreme outliers (the top 1% imprisonment rates - some may ultimately be removed because the census tract has an extremely low population ex. \~3 people), the shape of the distribution is unimodal and right skewed. The median imprisonment rate is `r carc_med` out of 100,000 with an IQR of `r carc_iqr`. This doesn't appear surprising - there are fewer census tracts with particularly high imprisonment rates.
 
 **Income (Figure 7):** The shape of the income distribution is also unimodal with a less extreme right skew and a median value of `r inc_med` and iqr of `r inc_iqr`. This doesn't appear surprising - we'd expect median incomes of tracts to be concentrated towards the left.
 
@@ -247,12 +247,12 @@ bll_data %>%
   filter(num_bll != 0) %>% 
   filter(perc_bll_indicator != 0) %>%
   ggplot(aes(y = imprisonment_rt, x = perc_bll_indicator)) +
-  geom_point(color = "black") +
-  geom_smooth(method = "lm", se = FALSE, linewidth = 0.6, color = "steelblue3", linetype = 2) +
-  labs(title = "Imprisonment Rate vs. Blood BLL Indicator",
+  geom_point(color = "steelblue3", size = 0.4, alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.6, color = "black", linetype = 2) +
+  labs(title = "Imprisonment Rate per 100,000 vs. Blood BLL Indicator",
        y = "Imprisonment Rate",
        x = "Percentage with BLL Indicator",
-       caption = "Filtering out tracts who either had perc_bll_indicatr = 0% or that tested 0 people") +
+       caption = "Filtering out tracts who either had perc_bll_indicat0r = 0% or that tested 0 people") +
   theme_classic()
 
 ```
@@ -268,7 +268,7 @@ ggincome <- bll_data %>%
   ggplot(aes(y = imprisonment_rt, x = med_income)) +
   geom_histogram(color = "black", fill = "steelblue3") +
   geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
-  labs(title = "Imprisonment Rate vs. Median Income",
+  labs(title = "Imprisonment Rate per 100,000 vs. Median Income",
        y = "Imprisonment Rate",
        x = "Median Income") +
   theme_classic()
@@ -282,7 +282,7 @@ ggage<- bll_data %>%
   ggplot(aes(x = age_15_to_29, y = imprisonment_rt)) +
   geom_point(alpha = 0.6, size = 0.6, color = "steelblue3") +
   geom_smooth(method = "lm", se = FALSE, size = 0.6, color = "black", linetype = 2) +
-  labs(title = "Imprisonment Rate vs. percentage age 15-29",
+  labs(title = "Imprisonment Rate per 100,000 vs. percentage age 15-29",
        y = "Imprisonment Rate",
        x = "Percentage of population age 15-29") +
   theme_classic()  
@@ -313,8 +313,8 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(
-    title = "Relationship between income and imprisonment",
-    subtitle = "By median percentages of Black, Native American, and other races",
+    title = "Relationship Between Income and Imprisonment Rate per 100,000",
+    subtitle = "By median percentages of non-white POC in tract",
     x = "Median Income",
     y = "Imprisonment Rate",
     color = "Above or below median"
@@ -326,13 +326,12 @@ ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
 
 ## Methodology and Results
 
-For our analysis process, we iterated through different models until we were satisfied with its conditions and performance. As an initial model, we did simple linear regression to predict a census tract’s imprisonment rate using bll indicator variable, racial makeup, median income, median age, the percentage of males, and the interaction between income and race. The model output and conditions are below:
-
 ### **Checking Initial Modelling Conditions**
+
+For our analysis process, we iterated through different models until we were satisfied with its conditions and performance. As an initial model, we did simple linear regression to predict a census tract’s imprisonment rate per 100,000 using the bll indicator variable, racial makeup, median income, median age, percentage of males, and the interaction between income and race. The model output and conditions are below:
 
 ```{r}
 #| label: intial-conditions
-#| fig.cap: Initial model output
 
 #filtering data points where num_bll = 0
 bll_data_checking <- bll_data %>% 
@@ -429,9 +428,13 @@ log_model_checking_aug |>
 
 **Splitting the Data**
 
-We were also concerned about spatial correlation among census tracts because it is likely tracts next to each other in the same vicinity share similar characteristics such as policing practices environment, and school systems that could potentially impact rates of incarceration. So we originally split the data with 20% in training and 80% testing to minimize this effect. We received abysmal R squared values when doing this. Using ChatGPT for suggestions, it recommended spatial cross validation, which we researched further to ensure it made sense for our analysis^2^. It appeared to be a feasible method to address model over-fitting and independence issues within our data. Because of that, we were then able to do a 80% training, 20% testing split.
+We were also concerned about spatial correlation among census tracts because it is likely tracts next to each other in the same vicinity share similar characteristics such as policing practices environment, and school systems that could potentially impact rates of incarceration. So we originally split the data with 20% in training and 80% testing to minimize this effect. We received abysmal R squared values when doing this. Using ChatGPT for suggestions, it recommended spatial cross validation, which we researched further to ensure it made sense for our analysis^2^.
 
 2\. [Geocomputation with R](https://r.geocompx.org/spatial-cv)
+
+\pagebreak
+
+It appeared to be a feasible method to address model over-fitting and independence issues within our data. Because of that, we were then able to do a 80% training, 20% testing split.
 
 ```{r}
 #| label: loading-required-packages
@@ -503,7 +506,7 @@ bll_data_geo$fold <- spatial_folds$foldID
 
 ![Spatial Correlation in CA](data/ca_spatial_layout.png){width="300"}
 
-This map shows the census tract within our data divided into five spatial blocks, each representing a fold used in spatial cross-validation. These blocks were generated with a block range of 100 km, ensuring that observations within each fold are spatially clustered and that training and testing sets are geographically separated. Each block is assigned an ID 1-5 and then used to partition the data into training and testing sets while minimizing spatial autocorrelation between them. The coloring on the map indicates fold membership, with neighboring census tracts grouped into the same spatial block whenever possible. Geographical distance is the only factor involved in generating the folds–other variables and their coefficients are not involved.
+This map shows the census tract within our data divided into five spatial blocks, each representing a fold used in spatial cross-validation. These blocks were generated with a block range of 100 km, ensuring that observations within each fold are spatially clustered and that training and testing sets are geographically separated. Each block is assigned an ID 1-5 and then used to partition the data into training and testing sets while minimizing spatial autocorrelation between them. The numbering on the map indicates fold membership, with neighboring census tracts grouped into the same spatial block whenever possible. Geographical distance is the only factor involved in generating the folds–other variables and their coefficients are not involved.
 
 ```{r}
 #| label: plotting-lead-levels
@@ -642,15 +645,19 @@ bll_data_geo %>%
 
 ## Discussion
 
-Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship between blood lead levels due to exposure to lead and incarceration rates based on existing research linking lead exposure to increased criminal tendencies. We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and financial demographic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate while, income, age, and the interaction between income and race came out as our most significant predictors. We understand that the circumstances surrounding once likelihood of being imprisoned are complex and based on our analysis it appears that lead exposure isn't a particularly useful metric. General discourse on this topic seems to reveal that differing results in studies may be due to the overstated effect of lead exposure on incarceration rate or at the very least, it's not a useful metric on its own.
+Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship between blood lead levels based on existing research linking lead exposure to increased "criminal behaviour". We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and socioeconimic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate while, income, age, and the interaction between income and race were the most significant predictors. We understand that the circumstances surrounding one's likelihood of being imprisoned are complex and this is only a single analysis where lead exposure wasn't a particularly useful metric. While there do exist studies that come to differing conclusions, generaldiscourse on this topic seems to reveal that differing results may be due to the misunderstood or overstated effect of lead exposure on incarceration rate, or at the very least, it's not a useful metric on its own.
 
 **Interesting Insights**
 
-We used spatial cross validation to create training and testing sets that account for the fact that census tracts next to each other in our dataset likely have similar values. Inclusion of some census tracts in the training data that are right next to census tracts in the testing data could therefore bias model performance. So a model trained on spatially cross validated data evaluated using data that is geographically distant from the training set should in theory be more robust. We would expect the R squared values to be lower and the RMSE values to be higher for the spatially cross validated model. While the RMSE values were higher for the spatially cross validated model, in line with our prediction, interestingly, this was not the case for the R squared values–compared to a model that was training on randomly split data (see appendix: 80/20 train test- roughly the same proportion of the total census tracts as the Spatial CV train test), the spatial CV model has a higher R squared. This could potentially be caused by the random split model over-fitting to regions that generalize poorly to the new regions. Even though the RMSE value is worse, the spatial CV model likely provides a more realistic prediction on new regions given the way it was trained, making it, in our opinion, the superior model.
+We used spatial cross validation to create training and testing sets that account for the fact that census tracts next to each other in our dataset likely have similar values. Inclusion of some census tracts in the training data that are right next to census tracts in the testing data could therefore bias model performance. So a model trained on spatially cross validated data evaluated using data that is geographically distant from the training set should in theory be more robust. We would expect the R squared values to be lower and the RMSE values to be higher for the spatially cross validated model. While the RMSE values were higher for the spatially cross validated model, in line with our prediction, interestingly, this was not the case for the R squared values–compared to a model that was training on randomly split data (see Table 5 in appendix: 80/20 train test - roughly the same proportion of the total census tracts as the Spatial CV train test), the spatial CV model has a higher R squared. This could potentially be caused by the random split model over-fitting to regions that generalize poorly to the new regions. Even though the RMSE value is worse, the spatial CV model likely provides a more realistic prediction on new regions given the way it was trained, making it, in our opinion, the superior model.
+
+\pagebreak
 
 **Limitations and Future Work**
 
-In terms of potential limitations or future changes of our analysis methods, it would be interesting to incorporate even more geographical regions as there are many states that currently have significant levels of lead exposure. Perhaps there are broader patterns we're not seeing with a focus on California alone. Alternatively, it would be interesting to see the same analysis except on California counties instead of tracts to easily relate county-specific traits which might be more stable to our conclusions. For in spatial cross-validation, we could vary the block size to test whether that improves model performance. A potential limitation of our current analysis is the way that we measure blood lead levels of a county. We are using blood lead levels in children to approximate risk of lead exposure for people in the census tract, which may not be an accurate representation of the reality. A better method would be to combine blood lead level testing in children with other forms of measuring potential for lead exposure, like water testing.
+In terms of potential limitations or future changes of our analysis methods, it would be interesting to incorporate even more geographical regions as there are many states that currently have significant levels of lead exposure. Perhaps there are broader patterns we're not seeing with a focus on California alone. Alternatively, it would be interesting to see the same analysis except on California counties instead of tracts to easily relate county-specific traits, which might be more stable, to our final conclusions. For our spatial cross-validation, we could also vary the block size to test whether that improves model performance.
+
+A potential limitation of our current analysis is the way that we measure blood lead levels of a county. We are using blood lead levels in children to approximate risk of lead exposure for all people in the census tract, which may not be an accurate representation of the reality. A better method would be to combine blood lead level testing in children with other forms of measuring potential for lead exposure, like water testing.
 
 \pagebreak
 
@@ -736,14 +743,14 @@ bll_data %>%
   filter(num_bll != 0) %>%
   filter(!is.na(race_categorical)) %>%  # Remove rows with NA in race_categorical
   ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  geom_point(alpha = 0.6, size = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = 2) +
   labs(
     title = "Relationship between income and Imprisonment",
-    subtitle = "By median percentages of Black, Native American, and other races",
+    subtitle = "By median percentages of non-white POC",
     x = "Median Income",
     y = "Imprisonment Rate",
-    color = "Above or below median",
+    color = "Above/below Median Percentage",
   ) +
   scale_color_manual(values = c("steelblue3", "mediumorchid")) +
   theme_minimal() +
@@ -758,17 +765,20 @@ bll_data %>%
 full_model_aug |>
   filter(.rownames != 2421) %>%
   filter(.std.resid < 80) %>%
-  ggplot(aes(x = .fitted, y = .std.resid)) +
-  geom_point() +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red4") +
+  ggplot(aes(x = .fitted, y = .std.resid,color = .cooksd)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
   labs(
-    title = "Initial Model: Residuals vs Fitted Values",
+    title = "Initial Model: Standardized Residuals vs Fitted Values",
     x = "Fitted",
     y = "Standardized Residuals",
-  )
+    color = "Cook's Distance"
+  ) + 
+  theme_minimal()+
+  scale_color_viridis_c()
 
-vif_fm <- vif(bll_full_model)
-vif_fm
+#vif_fm <- vif(bll_full_model)
+#vif_fm
 
 #There does not appear to be too much multicollinearity.
 ```
@@ -785,10 +795,10 @@ log_model_actual_aug <- augment(log_model_actual)
 
 log_model_actual_aug |>
   ggplot(aes(x = .fitted, y = .std.resid, color = .cooksd)) +
-  geom_point() +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "red4") +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
   labs(
-    title = "Standardized Residuals vs Fitted Values",
+    title = "Final Model: Standardized Residuals vs Fitted Values",
     x = "Fitted Value",
     y = "Standardized Residual",
     color = "Cook's Distance",
@@ -800,8 +810,7 @@ log_model_actual_aug |>
   #filter(.cooksd >= 0.5) %>% 
   #select(.hat, .std.resid, .cooksd)
 
-tidy(log_model_actual) %>% 
-  kable(digits = 3)
+#tidy(log_model_actual) %>% 
 
 ```
 
@@ -844,8 +853,8 @@ metrics_table <- bll_test_results2 %>%
   yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>% 
   filter(.metric %in% c("rmse", "rsq"))
 
-#metrics_table %>%
-#  kable(digits = 3, caption = "Random-Split Model Performance (RMSE and R-squared)")
+metrics_table %>%
+  kable(digits = 3, caption = "Random-Split Model Performance (RMSE and R-squared)")
 
 #the R squared value for the random split is higher, which is odd.
 ```
