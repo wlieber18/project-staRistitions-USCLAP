@@ -1,0 +1,634 @@
+---
+title: "Lead Exposure: Exploring the Relationship between Blood Lead Levels and Incareration Rates"
+subtitle: A Socio-Spatial Analysis
+date: "June 18 2025"
+format: pdf
+execute: 
+  warning: false
+  message: false
+  echo: false
+  progress: false
+editor: visual
+  markdown: 
+    wrap: 72
+---
+
+**Abstract**
+
+Exposure to lead can have a wide variety of negative effects on a child's brain development and behavior, which may permanently affect learning and achievement outcomes. Previous research has demonstrated a relationship between lead exposure and damaging long-term behavior that leads to negative outcomes. Using data from 9,114 California census tract, this study examines the relationship between lead exposure and incarceration rates utilizing the blood lead levels (BLL) of children reported through state Medicaid enrollment. Using 2020 data from the Census Bureau, the Prison Policy Initiative, and the California Department of Public Health, we employed spatial cross-validation and multiple linear regression models to predict incarceration rates, considering demographic factors like income, race, and age. The analysis found weak correlations between BLL and incarceration rates census tract, with median income, median age, and racial composition of the census tract emerging as more significant predictors. The final model demonstrated moderate explanatory power (R-squared = 0.495). Our findings suggest that BLL is not a significant predictor of incarceration rates, emphasizing the stronger influence of socioeconomic and racial factors.
+
+```{r}
+#| label: load-packages-and-data
+#| echo: FALSE
+#| warning: false
+#| message: false
+#| include: FALSE
+
+library(tidyverse)
+library(tidymodels)
+library(patchwork)
+library(ggplot2)
+library(readxl)  
+library(dplyr)
+library(knitr)
+library(rms)
+library(readr)
+library(GGally)
+
+
+ca_incarceration <- read_excel("data/census_tract_prison.xlsx")
+ca_lead <- read_excel("data/New_census_tract_lead_level.xlsx")
+
+ca_demographic <- read_csv("data/demographic.csv", skip = 1)
+ca_income <- read_csv("data/income.csv", skip = 1)
+
+#demographics
+ca_demographic <- ca_demographic |>
+  select(c(1:3, 27, 75, 164:176, 240:245)) |>
+  rename_with(~ str_replace(., ".*!!", "")) |>
+  filter(Geography != "0400000US06")
+
+ca_demographic <- ca_demographic |>
+  mutate(`Geography` = substr(`Geography`, 10, 20)) |>
+  mutate(across(!(1:2), as.numeric)) |>
+  mutate(`0_to_14` = 
+           `Under 5 years` + `5 to 9 years` + 
+           `10 to 14 years`,
+         
+         `15_to_29` =
+           `15 to 19 years` + `20 to 24 years` +
+           `25 to 29 years`,
+         
+         `30_to_44` = 
+           `30 to 34 years` + `35 to 39 years` +
+           `40 to 44 years`,
+         
+         `45_to_64` = 
+           `45 to 49 years` + `50 to 54 years` + 
+           `55 to 59 years` + `60 to 64 years`
+         ) |>
+  mutate(perc_male = `Male population` / `Total population` * 100) |>
+  select(!6:18) |>
+  rename(census_tract = "Geography") |>
+  rename(median_age = "Both sexes")
+
+
+#income
+ca_income <- ca_income |>
+  select(c(1, 2, 25)) |>
+  rename_with(~ str_replace(., ".*!!", "")) |>
+  filter(Geography != "0400000US06")
+
+ca_income <- ca_income |>
+  mutate(`Geography` = substr(`Geography`, 10, 20)) |>
+  mutate(across(!(1:2), as.numeric)) |>
+  rename(census_tract = "Geography")
+
+
+#incarceration
+ca_incarceration <- ca_incarceration |>
+  select(c(1, 2, 6)) |>
+  mutate(fips = paste0("0", fips)) |>
+  rename(census_tract = `fips`) |>
+  mutate(across(!(1:2), as.numeric))
+
+
+#lead
+ca_lead <- ca_lead |>
+  select(!1) |>
+  mutate(`Census Tract` = paste0("0", `Census Tract`)) |>
+  rename(census_tract = `Census Tract`) |>
+  mutate(across(!1, as.numeric)) |>
+  mutate(`Percent of children under 6 with a BLL of 3.5 µg/dL or greater` = 
+           `Percent of children under 6 with a BLL of 3.5 µg/dL or greater` * 100)
+
+#joining
+joined_data1 <- left_join(ca_lead, ca_incarceration, by = "census_tract")
+joined_data2 <- left_join(joined_data1, ca_demographic, by = "census_tract")
+
+joined_data <- left_join(joined_data2, ca_income, by = "census_tract")
+
+#post-join cleaning
+bll_data <- joined_data |>
+  janitor::clean_names() |>
+  select(!c(geographic_area_name_x, geographic_area_name_y)) |>
+  rename(num_bll_indicator = 
+           number_of_children_under_6_with_a_bll_of_3_5_mg_d_l_or_greater) |>
+  rename(perc_bll_indicator =
+           percent_of_children_under_6_with_a_bll_of_3_5_mg_d_l_or_greater) |>
+  rename(num_bll = 
+           total_number_of_children_under_6_with_a_bll) |>
+  rename(imprisonment_rt = imprisonment_rate_per_100_000) |>
+  rename(tract_name = ca_census_tracts) |>
+  rename(other_race = some_other_race) |>
+  rename(black = black_or_african_american) |>
+  rename(native_am = american_indian_and_alaska_native) |>
+  rename(pac_islander = native_hawaiian_and_other_pacific_islander) |>
+  rename(age_0_to_14 = x0_to_14) |>
+  rename(age_15_to_29 = x15_to_29) |>
+  rename(age_30_to_44 = x30_to_44) |>
+  rename(age_45_to_64 = x45_to_64) |>
+  rename(med_income = median_income_dollars) |>
+  rename(total_pop_2020 = total_population)
+```
+
+## **1 Introduction**
+
+In the mid-1990s, the US experienced a sharp downward trend in crime. Although determinants of crime are intertwined with many complex social and environmental factors, some researchers cite decreasing childhood lead exposure, accomplished through policies banning lead in paint and gasoline, as a plausible explanation (Wallace, 2017). A substantial body of research documents the adverse effects of lead exposure on brain development--children exposed to lead experience speech delays, learning disabilities, struggle with reading comprehension and math, and may experience behavioral changes (Schneider, 2023). Further, research by Talayero et al. (2023)^1^ has highlighted a strong association between lead exposure during childhood and criminal tendencies during adulthood. Understanding and documenting evidence for adverse outcomes is particularly important given children from low-income households are more likely to be at risk for lead exposure (CDC, 2024). This research topic stands to contribute to important discussions at the intersection of crime, environmental racism, and social determinants of health.
+
+Within this context, the authors constructed a study to determine whether the percentage of children tested above a safe threshold for blood lead level in a given census tract was a significant predictor of incarceration rate in that census tract. Using other demographic variables, like median age, median income, racial composition, and gender composition, our analysis sought to determine: **(1) Is there an association between percentage of children with a high BLL and incarceration rate** and **(2) If there is an association, is it significant compared to well-established predictors of likelihood to be incarcerated, like SES, race, gender, and age?** Using multiple linear regression models and spatial cross validation, we found that though a higher BLL was correlated with a higher incarceration rate in a given census tract, it was not a significant predictor of incarceration rate. Income in particular was a far stronger predictor of incarceration rate and was associated with the biggest decrease in odds of incarceration. These results highlight known disparities in the criminal justice system, but are limited by the intricate combination of social and institutional factors that increases one's likelihood of incarceration and the inability of this study to establish causal relationships between lead exposure and incarceration rate. The authors also note that blood lead levels as measured in children likely underestimates true lead exposure in a given census tract.
+
+## **2 Materials & Methods**
+
+### **2.1 Data sets**
+
+Data for this study were obtained from three sources. California incarceration rates comes from a collaborative project by the Essie Justice Group and the Prison Policy Initiative (https://www.prisonpolicy.org/origin/ca/2020/tract.html). PPI reports incarceration rate by census tract via data collected by the US Census Bureau in 2020. This data is publicly available because of a 2020 law in California reforming prison gerrymandering. Each census tract in the incarceration rate data was matched with median age, percent male, median income, and racial composition data from the 2020 US Census. Finally, BLL data was obtained from the California Department of Public Health (CDPH). Notably, this data was aggregated from 2018-2022 to protect individual privacy. The final merged data set contained 9,114 California census tracts and their respective statistics relating to blood lead levels, income, incarceration rates, and racial demographics. The 94 census tracts that screened zero children for blood lead level were excluded from this analysis. Observations deemed false positives or false negatives by the CDPH were preemptively omitted by CDPH reporting procedures.
+
+**Note:** Figures referenced throughout the report can be found in the Appendix section.
+
+### **2.2 Data processing and analysis**
+
+This study investigated the relationship between incarceration rate and blood lead level while controlling for additional variables, including age, gender, race, and income. All variables were continuous. A new variable, *POC_other*, was created to account for the racial composition of the census tract by the percentage of the population that is Black, Native, or Hispanic non-white (Table A1).
+
+Spatial correlation among nearby census tracts was likely. Tracts next to each other may share similar characteristics such as policing practices, built environments, and school systems that could potentially impact rates of incarceration, particularly near Los Angeles county (Figure B4). To address this independence problem, the authors employed spatial cross validation to attempt to mitigate the effects of spacial correlation. Figure C1 illustrate the division of census tracts into five spatial blocks, each representing a fold used in spatial cross-validation. These blocks were generated with a block range of 100 km, ensuring that observations within each fold are spatially clustered and that training and testing sets are geographically separated. Geographical distance is the only factor involved in generating the folds–other variables and their coefficients are not involved (Valavi et al., 2018).
+
+## **3 Results**
+
+### **3.1 Descriptive Analysis and Initial Modelling**
+
+Descriptive analysis indicated that incarceration rates and income distributions within California census tracts were right skewed (Figures B1 & B2). The authors elected to log transform these variables, which produced a residual plot that appeared to satisfy conditions of constant variance and linearity. Normality was also satisfied (n \> 30). No data points displayed a cook's distance greater than 0.5, and as a result, no points were deemed influential.
+
+The highly correlated nature of race and income lead the author's to examine a potential interaction effect. In Figure B3, a categorical variable flagged POC_other values that were above and below the median POC_other value to create a categorical split. The relationship between imprisonment rate and income appeared more negatively correlated when the percentage of non-white people in the census tract was above the median, leading to the inclusion of an interaction term between race and income in the initial model.
+
+### **3.3 Multiple Linear Regression Models**
+
+## **4 Discussion**
+
+**Potential Interactions (Figure 10):** There appears to be an interaction effect between race and income, as the relationship between median income and imprisonment rate differs by race. We created a variable, POC_other, indicating the percentage of a census tract population that is Black, Hispanic, or Native American. In this figure we categorized tracts with POC_other values that were above and below the median in the data of this variable to create a categorical split. The relationship between imprisonment rate and income appears more negatively correlated when the percentage of non-white people in the census tract is above the median.
+
+## Methodology and Results
+
+### **Checking Initial Modelling Conditions**
+
+For our analysis process, we iterated through different models until we were satisfied with its conditions and performance. As an initial model, we did simple linear regression to predict a census tract's imprisonment rate per 100,000 using the bll indicator variable, racial makeup, median income, median age, percentage of males, and the interaction between income and race. The model output and conditions are below:
+
+```{r}
+#| label: intial-conditions
+#| include: FALSE
+
+bll_data <- bll_data %>%
+  mutate(POC_other = black + native_am + other_race, 
+         race_categorical = ifelse(POC_other > median(POC_other, na.rm = TRUE), 
+                                   "above_median_poc_other", 
+                                   "below_median_poc_other"))
+
+#filtering data points where num_bll = 0
+bll_data_checking <- bll_data %>% 
+  filter(num_bll != 0)
+
+bll_full_model <- lm(imprisonment_rt ~ perc_bll_indicator + POC_other + med_income + median_age + perc_male + med_income * POC_other, data = bll_data) 
+
+tidy(bll_full_model) %>% 
+kable(digits = 3)
+
+set.seed(210)
+
+full_model_aug <- augment(bll_full_model)
+
+```
+
+```{r}
+#| label: loading-required-packages
+#| include: FALSE
+
+install.packages("tigris")
+install.packages("sf")
+install.packages("blockCV")
+library(blockCV)
+library(tigris)
+library(sf)
+
+
+
+```
+
+```{r}
+
+#| label: log_transformation
+#| fig-show: hide
+#| include: FALSE
+#used +1 to avoid log(0) issues? Idk that was new for me and not sure we need to keep it.
+bll_data_transformed <- bll_data_checking %>%
+  mutate(
+    log_med_income = log(med_income + 1),       
+    log_imprisonment_rt = log(imprisonment_rt + 1) 
+  ) %>% 
+  filter(imprisonment_rt != 0)
+
+log_model_checking <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male, data = bll_data_transformed)
+
+log_model_checking_aug <- augment(log_model_checking)
+
+log_model_checking_aug |>
+  ggplot(aes(x = .fitted, y = .std.resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Standardized Residuals vs Fitted Values",
+    x = "Fitted",
+    y = "Standardized Residuals"
+  )
+```
+
+```{r}
+#| label: joining-shapefiles-to-bl-data
+#| include: FALSE
+
+ca_tracts <- tracts(state = "CA", cb = TRUE, year = 2020)
+
+ca_tracts <- ca_tracts %>%
+  mutate(GEOID = as.character(GEOID))
+
+bll_data_transformed <- bll_data_transformed %>%
+  mutate(census_tract = as.character(census_tract)) 
+
+bll_data_geo <- left_join(ca_tracts, bll_data_transformed, by = c("GEOID" = "census_tract"))
+
+bll_data_geo <- bll_data_geo %>%
+  filter(!is.na(log_imprisonment_rt), 
+         !is.na(log_med_income),
+         !is.na(perc_bll_indicator),
+         !is.na(POC_other),
+         !is.na(median_age),
+         !is.na(perc_male))
+```
+
+```{r}
+#| label: spatial-cross-validation
+#| include: FALSE
+
+#If training census tracts are next to testing census tracts, this could create spatial bias in the model. To address this, we employed spatial cross validation, which splits the data into folds that are distant from each other.
+
+#Best sources explaining what is happening
+
+#https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13107
+#https://www.frontiersin.org/journals/remote-sensing/articles/10.3389/frsen.2025.1531097/full
+
+#Other sources
+
+#https://stats.stackexchange.com/questions/460905/data-partitioning-for-spatial-data
+#https://esajournals.onlinelibrary.wiley.com/doi/10.1002/ecm.1557
+
+set.seed(210)
+
+spatial_folds <- invisible(
+  blockCV::spatialBlock(
+    speciesData = bll_data_geo,
+    theRange = 100000,
+    k = 5,
+    selection = "random",
+    iteration = 100,
+    showBlocks = TRUE))
+  
+bll_data_geo$fold <- spatial_folds$foldID
+```
+
+```{r}
+#| label: plotting-lead-levels
+#| progress: false
+#| fig.cap: Spatial lead level category distribution
+#| include: FALSE
+
+bll_data_geo <- bll_data_geo %>%
+  mutate(lead_category = case_when(
+    perc_bll_indicator < 0.5 ~ "< 0.5%",
+    perc_bll_indicator < 1 ~ "0.5–1%",
+    perc_bll_indicator < 2 ~ "1–2%",
+    perc_bll_indicator < 5 ~ "2–5%",
+    TRUE ~ ">5%"
+  )) 
+
+ggplot(bll_data_geo) +
+  geom_sf(aes(fill = lead_category), color = NA) +
+  scale_fill_viridis_d(option = "plasma", na.value = "grey80") +
+  labs(
+    title = "Blood Lead Level Categories by Census Tract",
+    fill = "Lead Level Category"
+  ) 
+```
+
+### Final Model Selection
+
+With our transformed variables, we got a better residuals plot **(Figure 12)** with only a single outlier. From there, we arrived at our final model using step-wise selection to determine what predictor variables were most significant. Through this method, we found that indicators of bll in a census tract isn't statistically significant in predicting their imprisonment rate. However, median income, age, an the interaction between income and the racial makeup of a census tract were the most statistically significant in this model. We elected to keep blood lead level in the model because it was our variable of interest.
+
+```{r}
+#| label: splitting
+#| include: FALSE
+
+
+#we assign 3 folds to the training data and 2 to the testing data
+
+train_folds <- c(1, 2, 3, 4)
+test_folds  <- c(5)
+
+bll_train <- bll_data_geo %>%
+  filter(fold %in% train_folds)
+
+bll_test <- bll_data_geo %>%
+  filter(fold %in% test_folds)
+
+```
+
+```{r}
+#| label: removing-influential-points
+#| fig-show: hide
+#| include: FALSE
+#choosing interaction model
+
+log_model_actual <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male + POC_other * log_med_income, data = bll_train)
+
+log_model_actual_aug <- augment(log_model_actual)
+
+#log_model_actual_aug %>% 
+  #filter(.cooksd >= 0.5) %>% 
+  #select(.hat, .std.resid, .cooksd)
+
+tidy(log_model_actual) %>% 
+  kable(digits = 3)
+
+#It does not appear there are any data points in the training data with a cook's distance greater than 0.5. Therefore, none need to be removed.
+```
+
+```{r}
+#| label: model-selection
+#| fig.cap: Final Model output 
+
+library(MASS)
+
+
+stepwise_model_forced <- stepAIC(
+  log_model_actual,
+  scope = list(
+    lower = ~ perc_bll_indicator, 
+    upper = ~ log_med_income + perc_bll_indicator + POC_other + median_age + perc_male + POC_other * log_med_income
+  ),
+  direction = "both",
+  trace = 0
+)
+
+#summary(stepwise_model_forced)
+
+#tidy(stepwise_model_forced) %>%
+ # kable(digits = 3)
+
+#Interestingly, the lead predictor was removed originally through stepwise selection, perhaps indicating that it is not useful here. We are going to force it back into the model since it is a variable of interest.
+
+```
+
+```{r}
+#| label: final-model-evaluation
+
+log_predictions <- predict(log_model_actual, newdata = bll_test)
+
+bll_test <- bll_test %>%
+  mutate(imprisonment_rate = exp(log_imprisonment_rt))
+
+bll_test_results <- bll_test %>%
+  mutate(predicted = exp(log_predictions)) %>%
+  dplyr::select(imprisonment_rate, predicted)
+
+metrics_table <- bll_test_results %>%
+  yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>% 
+  filter(.metric %in% c("rmse", "rsq"))
+
+metrics_table %>%
+  kable(digits = 3, caption = "Model Performance (RMSE and R-squared)")
+
+```
+
+```{r}
+#summary(log_model_actual)$r.squared
+#summary(log_model_actual2)$r.squared
+```
+
+```{r, eval = FALSE}
+bll_data_geo %>%
+  count(fold) %>%
+  arrange(fold) %>%
+  kable(digits = 0, caption = "Sample Size per Spatial Fold")
+```
+
+## Discussion
+
+Our ultimate research goal was to determine how well blood lead levels can explain rates of imprisonment, with a focus on California census tracts. We hypothesized that there would be a significant relationship between blood lead levels based on existing research linking lead exposure to increased "criminal behaviour". We also wanted to factor in other various social factors that are well understood to have effects on one's likelihood to be imprisoned, such as racial and socioeconimic data. Based on our final chosen model, it appears that the blood lead levels of a census tract aren't statistically significant in predicting imprisonment rate (0.296 \> 0.05) while, income, age, and the interaction between income and race were the most significant predictors. We understand that the circumstances surrounding one's likelihood of being imprisoned are complex and this is only a single analysis where lead exposure wasn't a particularly useful metric. Other factors, like median income (\~0 \< 0.05), were far more impactful: for every, 1% increase in median income the model predicts a 0.663% decrease in incarceration rate, on average, holding all else constant. While there do exist studies that come to differing conclusions, general discourse on this topic seems to reveal that differing results may be due to the misunderstood or overstated effect of lead exposure on incarceration rate, or at the very least, it's not a useful metric on its own.
+
+**Interesting Insights**
+
+We used spatial cross validation to create training and testing sets that account for the fact that census tracts next to each other in our dataset likely have similar values. Inclusion of some census tracts in the training data that are right next to census tracts in the testing data could therefore bias model performance. So a model trained on spatially cross validated data evaluated using data that is geographically distant from the training set should in theory be more robust. We would expect the R squared values to be lower and the RMSE values to be higher for the spatially cross validated model. While the RMSE values were higher for the spatially cross validated model, in line with our prediction, interestingly, this was not the case for the R squared values--compared to a model that was training on randomly split data (see Table 5 in appendix: 80/20 train test - roughly the same proportion of the total census tracts as the Spatial CV train test), the spatial CV model has a higher R squared. This could potentially be caused by the random split model over-fitting to regions that generalize poorly to the new regions. Even though the RMSE value is worse, the spatial CV model likely provides a more realistic prediction on new regions given the way it was trained, making it, in our opinion, the superior model.
+
+\pagebreak
+
+**Limitations and Future Work**
+
+In terms of potential limitations or future changes of our analysis methods, it would be interesting to incorporate even more geographical regions as there are many states that currently have significant levels of lead exposure. Perhaps there are broader patterns we're not seeing with a focus on California alone. Alternatively, it would be interesting to see the same analysis except on California counties instead of tracts to easily relate county-specific traits, which might be more stable, to our final conclusions. For our spatial cross-validation, we could also vary the block size to test whether that improves model performance.
+
+A potential limitation of our current analysis is the way that we measure blood lead levels of a county. We are using blood lead levels in children to approximate risk of lead exposure for all people in the census tract, which may not be an accurate representation of the reality. A better method would be to combine blood lead level testing in children with other forms of measuring potential for lead exposure, like water testing.
+
+```{r}
+#| label: checking-effects-of-block-CV-model-2
+#| include: FALSE
+
+#how do we know that the spatial CV successfully addressed the independence problem?
+#We would expect the models to be worse predictors on the spatial CV data. 
+
+#randomly split data
+
+set.seed(210)
+random_split <- initial_split(bll_data_geo, prop = 0.8)
+bll_train_random <- training(random_split)
+bll_test_random  <- testing(random_split)
+
+log_model_actual2 <- lm(log_imprisonment_rt ~ log_med_income + perc_bll_indicator + 
+                POC_other + median_age + perc_male + POC_other * log_med_income, data = bll_train_random)
+
+stepwise_model_forced2 <- stepAIC(
+  log_model_actual2,
+  scope = list(
+    lower = ~ perc_bll_indicator, 
+    upper = ~ log_med_income + perc_bll_indicator + POC_other + median_age + perc_male + POC_other * log_med_income
+  ),
+  direction = "both",
+  trace = 0
+)
+
+log_predictions2 <- predict(log_model_actual2, newdata = bll_test_random)
+
+bll_test_random <- bll_test_random %>%
+  mutate(imprisonment_rate = exp(log_imprisonment_rt))
+
+bll_test_results2 <- bll_test_random %>%
+  mutate(predicted = exp(log_predictions2)) %>%
+  dplyr::select(imprisonment_rate, predicted)
+
+metrics_table <- bll_test_results2 %>%
+  yardstick::metrics(truth = imprisonment_rate, estimate = predicted) %>% 
+  filter(.metric %in% c("rmse", "rsq"))
+
+metrics_table %>%
+  kable(digits = 3, caption = "Random-Split Model Performance (RMSE and R-squared)")
+
+#the R squared value for the random split is higher, which is odd.
+```
+
+# 5 **Appendix**
+
+## **5.1 Appendix A - bll_data Dictionary (variables in processed dataset)**
+
+| Variable | Description |
+|:----------------|:-----------------------------------------------------|
+| census_tract | California census tract (categorical) |
+| city | California city (categorical) |
+| num_bll | Total number of children in a census tract whose blood was tested for lead (numerical) |
+| num_bll_indicator | The number of tested children in a census tract under 6 that have a blood lead level of 3.5mg or greater (numerical) |
+| perc_bll_indicator | The percentage of tested children in a census tract under 6 that have a blood lead level of 3.5mg or greater (numerical) |
+| POC_other | The percentage of a census tract population that is Black, Hispanic, or Native American |
+| num_prison | The number of imprisoned people in a census tract (numerical) |
+| total_pop_2020 | Population of census tract in 2020 (numerical) |
+| imprisonment_rt | Imprisonment rate per 100,000 people in a census tract (numerical) |
+| median_age | Median age in census tract (numerical) |
+| perc_male | Proportion of males in census tract (%, numerical) |
+| med_income | Median income of census tract (\$, numerical) |
+
+**(Table A1):** Variable Definitions
+
+## 5.2 Appendix B - Descriptive Analysis
+
+```{r}
+#| label: lead-dist-code-show
+#| fig.cap: "Figure B1: Income"
+#| fig.height: 3
+#| fig.width: 5
+
+
+
+inc_limit <- quantile(bll_data$med_income, 0.99, na.rm = TRUE)
+
+bll_data |>
+  ggplot(aes(x = med_income)) +
+  geom_histogram(color = "black", fill = "steelblue3") +
+  scale_x_continuous(limits = c(0, 200000)) +
+  scale_y_continuous(limits = c(0, 1000)) +
+  labs(
+    title = "Distribution of Median Income in CA",
+    subtitle = "by Census Tract",
+    x = "Median Income ($)",
+    y = "Count",
+    caption = "Capturing ~99% of data"
+  ) + theme_classic() +
+  theme(plot.title = element_text(size = 10))
+
+inc_med <- median(bll_data$med_income, na.rm = TRUE)
+inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
+
+
+```
+
+**(Figure B1):** Income distribution in California census tracts
+
+```{r}
+#| label: carc-dist-code-plot-show
+#| fig-cap: "Figure B2: Distribution of Incarceration Rates"
+#| fig.height: 3
+#| fig.width: 5
+
+bll_data %>%
+  ggplot(aes(x = imprisonment_rt)) +
+  geom_histogram(color = "black", fill = "steelblue3") +
+  scale_x_continuous(limits = c(0, 1250)) +
+  labs(
+    title = "Distribution of Imprisonment Rates in CA",
+    subtitle = "per 100,000 by Census Tract",
+    x = "Imprisonment Rate (per 100,000)",
+    y = "Count",
+    caption = "Capturing ~99% of data"
+  ) + theme_classic() +
+  theme(plot.title = element_text(size = 10))
+
+```
+
+**(Figure B2):** Incarceration rate distribution in California census tracts
+
+```{r}
+#| label: interaction-effects-code
+#| #| fig-cap: "Figure B3: Interaction Effects"
+#| fig-show: hide
+
+bll_data %>%
+  filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
+  filter(imprisonment_rt <= quantile(imprisonment_rt, 0.98, na.rm = TRUE)) %>%
+  filter(num_bll != 0) %>%
+  filter(!is.na(race_categorical)) %>%  # Remove rows with NA in race_categorical
+  ggplot(aes(x = med_income, y = imprisonment_rt, color = race_categorical)) +
+  geom_point(alpha = 0.6, size = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linetype = 2) +
+  labs(
+    title = "Relationship between income and Imprisonment",
+    subtitle = "By median percentages of non-white POC",
+    x = "Median Income",
+    y = "Imprisonment Rate",
+    color = "Above/below Median Percentage",
+  ) +
+  scale_color_manual(values = c("steelblue3", "mediumorchid")) +
+  theme_minimal() +
+  facet_wrap(~race_categorical, ncol = 1)
+```
+
+**(Figure B3):** Interaction effects between income and race
+
+![Spatial Distribution of BLL in California](data/Layout.png){width="200"}
+
+**(Figure B4):** Spatial distribution of census tracts in California with BLL
+
+## \*\*5.3 Appendix C- Spatial CV and Multiple Linear Regression Results
+
+![Spatial Correlation in CA](data/ca_spatial_layout.png){width="300"}
+
+**(Figure C1):** Data divided into five spatial blocks, each representing a fold used in spatial cross-validation.
+
+```{r}
+#| label: log_transformation
+#| fig-cap: "Condition Checking for MLR"
+#| fig-show: hide
+
+log_model_actual_aug |>
+  ggplot(aes(x = .fitted, y = .std.resid, color = .cooksd)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "Standardized Residuals vs Fitted Values",
+    x = "Fitted Value",
+    y = "Standardized Residual",
+    color = "Cook's Distance"
+  ) +
+  scale_color_viridis_c() +
+  theme_minimal() 
+
+
+```
+
+**(Figure C2):** Condition Checking for MLR
+
+```{r}
+tidy(log_model_actual) %>% kable(digits = 3) 
+```
+
+**(Table C3):** Final Model Output
+
+```{r}
+
+metrics_table %>% kable(digits = 3, caption = "Table C4 Model Performance (RMSE and R-squared)")
+```
+
+**(Table C4):** Model Performance
