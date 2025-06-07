@@ -158,7 +158,7 @@ Spatial correlation among nearby census tracts was likely. Tracts next to each o
 
 Descriptive analysis indicated that incarceration rates and income distributions within California census tracts were right skewed (Figures B1 & B2). The authors elected to log transform these variables, which produced a residual plot that appeared to satisfy conditions of constant variance and linearity. Normality was also satisfied (n \> 30). No data points displayed a cook's distance greater than 0.5, and as a result, no points were deemed influential.
 
-The highly correlated nature of race and income lead the author's to examine a potential interaction effect. In Figure B3, a categorical variable flagged POC_other values that were above and below the median POC_other value to create a categorical split. The relationship between imprisonment rate and income appeared more negatively correlated when the percentage of non-white people in the census tract was above the median, leading to the inclusion of an interaction term between race and income in the initial model.
+The highly correlated nature of race and income lead the authors to examine a potential interaction effect. In Figure B3, a categorical variable flagged POC_other values that were above and below the median POC_other value to create a categorical split. The relationship between imprisonment rate and income appeared more negatively correlated when the percentage of non-white people in the census tract was above the median, leading to the inclusion of an interaction term between race and income in the initial model.
 
 ### **3.3 Multiple Linear Regression Models**
 
