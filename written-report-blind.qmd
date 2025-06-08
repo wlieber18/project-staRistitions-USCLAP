@@ -7,22 +7,25 @@ execute:
   warning: false
   message: false
   echo: false
+  include: false   
   progress: false
-editor: visual
-markdown: 
-  wrap: 72
+editor: 
+  mode: visual
+  markdown: 
+    wrap: 72
 ---
-
 **Abstract**
 
 Exposure to lead can have a wide variety of negative effects on a child's brain development and behavior, which may permanently affect learning and achievement outcomes. Previous research has demonstrated a relationship between lead exposure and damaging long-term behavior that leads to negative outcomes. Using data from 9,114 California census tract, this study examines the relationship between lead exposure and incarceration rates utilizing the blood lead levels (BLL) of children reported through state Medicaid enrollment. Using 2020 data from the Census Bureau, the Prison Policy Initiative, and the California Department of Public Health, we employed spatial cross-validation and multiple linear regression models to predict incarceration rates, considering demographic factors like income, race, and age. The analysis found weak correlations between BLL and incarceration rates census tract, with median income, median age, and racial composition of the census tract emerging as more significant predictors. The final model demonstrated moderate explanatory power (R-squared = 0.495). Our findings suggest that BLL is not a significant predictor of incarceration rates, emphasizing the stronger influence of socioeconomic and racial factors.
 
+
+
 ```{r}
 #| label: load-packages-and-data
-#| echo: FALSE
+#| echo: false
 #| warning: false
 #| message: false
-#| include: FALSE
+#| include: false
 
 library(tidyverse)
 library(tidymodels)
@@ -176,7 +179,7 @@ An important limitation of our current analysis is the method of measuring BLL i
 
 ```{r}
 #| label: intial-conditions
-#| include: FALSE
+#| include: false
 #| echo: false 
 
 bll_data <- bll_data %>%
@@ -202,7 +205,7 @@ full_model_aug <- augment(bll_full_model)
 
 ```{r}
 #| label: loading-required-packages
-#| include: FALSE
+#| include: false
 #| echo: false 
 
 install.packages("tigris")
@@ -220,7 +223,7 @@ library(sf)
 
 #| label: log_transformation
 #| fig-show: hide
-#| include: FALSE
+#| include: false
 #| echo: false 
 #used +1 to avoid log(0) issues? Idk that was new for me and not sure we need to keep it.
 bll_data_transformed <- bll_data_checking %>%
@@ -248,7 +251,7 @@ log_model_checking_aug |>
 
 ```{r}
 #| label: joining-shapefiles-to-bl-data
-#| include: FALSE
+#| include: false
 #| echo: false 
 
 ca_tracts <- tracts(state = "CA", cb = TRUE, year = 2020)
@@ -272,7 +275,7 @@ bll_data_geo <- bll_data_geo %>%
 
 ```{r}
 #| label: spatial-cross-validation
-#| include: FALSE
+#| include: false
 #| echo: false 
 
 #If training census tracts are next to testing census tracts, this could create spatial bias in the model. To address this, we employed spatial cross validation, which splits the data into folds that are distant from each other.
@@ -305,7 +308,7 @@ bll_data_geo$fold <- spatial_folds$foldID
 #| label: plotting-lead-levels
 #| progress: false
 #| fig.cap: Spatial lead level category distribution
-#| include: FALSE
+#| include: false
 #| echo: false 
 
 bll_data_geo <- bll_data_geo %>%
@@ -328,7 +331,7 @@ ggplot(bll_data_geo) +
 
 ```{r}
 #| label: splitting
-#| include: FALSE
+#| include: false
 #| echo: false 
 
 
@@ -348,7 +351,7 @@ bll_test <- bll_data_geo %>%
 ```{r}
 #| label: removing-influential-points
 #| fig-show: hide
-#| include: FALSE
+#| include: false
 #| echo: false 
 #choosing interaction model
 
@@ -438,7 +441,7 @@ bll_data_geo %>%
 
 ```{r}
 #| label: checking-effects-of-block-CV-model-2
-#| include: FALSE
+#| include: false
 #| echo: false 
 
 #how do we know that the spatial CV successfully addressed the independence problem?
@@ -543,8 +546,8 @@ inc_iqr <- IQR(bll_data$med_income, na.rm = TRUE)
 #| label: carc-dist-code-plot-show
 #| fig.height: 3
 #| fig.width: 5
-#| echo: FALSE
-#| include: FALSE
+#| echo: false
+#| include: false
 
 bll_data %>%
   ggplot(aes(x = imprisonment_rt)) +
@@ -565,8 +568,8 @@ bll_data %>%
 
 ```{r}
 #| label: interaction-effects-code
-#| echo: FALSE
-#| include: FALSE
+#| echo: false
+#| include: false
 
 bll_data %>%
   filter(perc_bll_indicator <= quantile(perc_bll_indicator, 0.98, na.rm = TRUE)) %>%
@@ -603,8 +606,8 @@ bll_data %>%
 ```{r}
 
 #| label: log_transformation
-#| include: FALSE
-#| echo: FALSE
+#| include: false
+#| echo: false
 
 
 log_model_actual_aug |>
@@ -639,7 +642,7 @@ metrics_table %>% kable(digits = 3, caption = "Table C4 Model Performance (RMSE 
 **(Table C4):** Model Performance
 
 ```{r}
-#| include: FALSE
+#| include: false
 #| echo: false 
 
 
@@ -651,7 +654,7 @@ tidy(test) %>%
 ```
 
 ```{r}
-#| include: FALSE
+#| include: false
 #| echo: false 
 # Model 1: just POC_other
 m1 <- lm(log_imprisonment_rt ~ POC_other, data = bll_train)
