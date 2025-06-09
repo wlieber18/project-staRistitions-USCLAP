@@ -33,10 +33,10 @@ incarceration rates utilizing the blood lead levels (BLL) of children
 reported through state Medicaid enrollment. Using 2020 data from the
 Census Bureau, the Prison Policy Initiative, and the California
 Department of Public Health, we employed spatial cross-validation and
-multiple linear regression models to predict incarceration rates,
-considering demographic factors like income, race, and age. The analysis
-found weak correlations between BLL and incarceration rates census
-tract, with median income, median age, and racial composition of the
+multiple linear regression models to predict incarceration rates by
+census tract, considering demographic factors like income, race, and
+age. The analysis found weak correlations between BLL and incarceration
+rate, with median income, median age, and racial composition of the
 census tract emerging as more significant predictors. The final model
 demonstrated moderate explanatory power (R-squared = 0.497). Our
 findings suggest that BLL is not a significant predictor of
@@ -59,7 +59,6 @@ library(ggplot2)
 library(readxl)  
 library(dplyr)
 library(knitr)
-library(rms)
 library(readr)
 library(GGally)
 
@@ -171,36 +170,36 @@ of research documents the adverse effects of lead exposure on brain
 development--children exposed to lead experience speech delays, learning
 disabilities, struggle with reading comprehension and math, and may
 experience behavioral changes (Schneider, 2023). Further, research by
-Talayero et al. (2023)^1^ has highlighted a strong association between
-lead exposure during childhood and criminal tendencies during adulthood.
+Talayero et al. (2023) has highlighted a strong association between lead
+exposure during childhood and criminal tendencies during adulthood.
 Understanding and documenting evidence for adverse outcomes is
 particularly important given children from low-income households are
 more likely to be at risk for lead exposure (CDC, 2024). This research
-topic stands to contribute to important discussions at the intersection
-of crime, environmental racism, and social determinants of health.
+stands to contribute to important discussions at the intersection of
+crime, environmental racism, and social determinants of health.
 
 Within this context, the authors constructed a study to determine
-whether the percentage of children tested above a safe threshold for
-blood lead level in a given census tract was a significant predictor of
-incarceration rate in that census tract. Using other demographic
-variables, like median age, median income, racial composition, and
-gender composition, our analysis sought to determine: **(1) Is there an
-association between percentage of children with a high BLL and
-incarceration rate** and **(2) If there is an association, is it
-significant compared to well-established predictors of likelihood to be
-incarcerated, like SES, race, gender, and age?** Using multiple linear
-regression models and spatial cross validation, we found that though a
-higher BLL was correlated with a higher incarceration rate in a given
-census tract, it was not a significant predictor of incarceration rate.
-Income in particular was a far stronger predictor of incarceration rate
-and was associated with the biggest decrease in odds of incarceration.
-These results highlight known disparities in the criminal justice
-system, but are limited by the intricate combination of social and
-institutional factors that increases one's likelihood of incarceration
-and the inability of this study to establish causal relationships
-between lead exposure and incarceration rate. The authors also note that
-blood lead levels as measured in children likely underestimates true
-lead exposure in a given census tract.
+whether the percentage of children with BLLs above 3.5 "µg" in a given
+census tract was a significant predictor of incarceration rate in that
+census tract. Using other demographic variables, like median age, median
+income, racial composition, and gender composition, our analysis sought
+to determine: **(1) Is there an association between percentage of
+children with a high BLL and incarceration rate** and **(2) If there is
+an association, is it significant compared to well-established
+predictors of likelihood to be incarcerated, like SES, race, gender, and
+age?** Using multiple linear regression models and spatial cross
+validation, we found that though a higher BLL was correlated with a
+higher incarceration rate in a given census tract, it was not a
+significant predictor of incarceration rate. Income in particular was a
+far stronger predictor of incarceration rate and was associated with the
+biggest decrease in predicted incarceration rate. These results
+highlight known disparities in the criminal justice system, but are
+limited by the intricate combination of social and institutional factors
+that increases one's likelihood of incarceration and the inability of
+this study to establish causal relationships between lead exposure and
+incarceration rate. The authors also note that blood lead levels as
+measured in children likely underestimates true lead exposure in a given
+census tract.
 
 ## **2 Materials & Methods**
 
@@ -284,7 +283,18 @@ approximately 80% of the census tracts. *log_imprisonment_rt,*
 *log_med_income, perc_bll_indicator, POC_other, median_age, perc_male*,
 and the interaction between *POC_other* and *log_med_income* were
 included in the full model. Stepwise selection using AIC resulted in the
-exclusion of perc_bll_indicator, which the authors forced back into the model because it was the variable of interest. log_median_income (centered) demonstrated the strongest negative relationship with predicted incarceration rate ($\beta = 0.515$, $p \approx 0$). Increasing POC_other also increased the predicted rate of incarceration ($\beta = 1.016$, $p \approx 0$). The interaction term between income and race was significant ($\beta = 1.004$, $p \approx 0$). More men in a census tract, Perc_male, increased the predicted rate of incarceration ($\beta = 1.008$, $p \approx 0$). Blood lead level was not a significant predictor ($p > 0.005$). Finally, an increasing median age was associated with an increase in the predicted incarceration rate ($\beta = 1.005$, $p \approx 0$).
+exclusion of *perc_bll_indicator, or BLL level*, which the authors
+forced back into the model because it was the variable of interest.
+*log_median_income* (centered) demonstrated the strongest negative
+relationship with predicted incarceration rate ($\beta = 0.515$,
+$p \approx 0$). Increasing *POC_other* also increased the predicted rate
+of incarceration ($\beta = 1.016$, $p \approx 0$). The interaction term
+between income and race was significant ($\beta = 1.004$,
+$p \approx 0$). More men in a census tract, *perc_mal*e, increased the
+predicted rate of incarceration ($\beta = 1.008$, $p \approx 0$). Blood
+lead level was not a significant predictor ($p > 0.005$). Finally, an
+increasing median age was associated with an increase in the predicted
+incarceration rate ($\beta = 1.005$, $p \approx 0$).
 
 Testing the model on the 5th bin of the spatially cross validated data,
 which represented approximately 20% of the census tracts, yielded an R
@@ -294,15 +304,15 @@ all variables were below 3 when interaction terms were removed.
 ## **4 Discussion**
 
 This analysis aligns with prior research on social determinants of
-crime, as race, income, and gender well-established factors influencing
-likelihood of incarceration (Ghandnoosh, 2023). One suprising exception
-was age. Liklihood of committing a crime peaks just after adolescence
-and rapidly diminishes thereafter (Shulman, Steinberg, and Piquero,
-2013). This analysis found that predicted incarceration rate *increases*
-with an increasing median_age. This is likely a limitation of using
-*median_age,* as the age–related relationship with incarceration is
-specific to the percentage of the population that is around 18-25 years
-old.
+crime, as race, income, and gender are well-established factors
+influencing likelihood of incarceration (Ghandnoosh, 2023). One uprising
+exception was age. Likelihood of committing a crime peaks just after
+adolescence and rapidly diminishes thereafter (Shulman, Steinberg, and
+Piquero, 2013). This analysis found that predicted incarceration rate
+*increases* with an increasing *median_age*. This is likely a limitation
+of using *median_age,* as the age–related relationship with
+incarceration is specific to the percentage of the population that is
+around 18-25 years old.
 
 Notably, BLL is not statistically significant in predicting
 incarceration rate. The outstanding significance of other established
@@ -549,20 +559,20 @@ metrics_table %>%
 
 ## **5.1 Appendix A - bll_data Dictionary (variables in processed dataset)**
 
-| Variable | Description |
-|:----------------------|:------------------------------------------------|
-| census_tract | California census tract (categorical) |
-| city | California city (categorical) |
-| num_bll | Total number of children in a census tract whose blood was tested for lead (numerical) |
-| num_bll_indicator | The number of tested children in a census tract under 6 that have a blood lead level of 3.5mg or greater (numerical) |
+| Variable           | Description                                                                                                              |
+|:-----------------------|:-----------------------------------------------|
+| census_tract       | California census tract (categorical)                                                                                    |
+| city               | California city (categorical)                                                                                            |
+| num_bll            | Total number of children in a census tract whose blood was tested for lead (numerical)                                   |
+| num_bll_indicator  | The number of tested children in a census tract under 6 that have a blood lead level of 3.5mg or greater (numerical)     |
 | perc_bll_indicator | The percentage of tested children in a census tract under 6 that have a blood lead level of 3.5mg or greater (numerical) |
-| POC_other | The percentage of a census tract population that is Black, Hispanic, or Native American |
-| num_prison | The number of imprisoned people in a census tract (numerical) |
-| total_pop_2020 | Population of census tract in 2020 (numerical) |
-| imprisonment_rt | Imprisonment rate per 100,000 people in a census tract (numerical) |
-| median_age | Median age in census tract (numerical) |
-| perc_male | Proportion of males in census tract (%, numerical) |
-| med_income | Median income of census tract (\$, numerical) |
+| POC_other          | The percentage of a census tract population that is Black, Hispanic, or Native American                                  |
+| num_prison         | The number of imprisoned people in a census tract (numerical)                                                            |
+| total_pop_2020     | Population of census tract in 2020 (numerical)                                                                           |
+| imprisonment_rt    | Imprisonment rate per 100,000 people in a census tract (numerical)                                                       |
+| median_age         | Median age in census tract (numerical)                                                                                   |
+| perc_male          | Proportion of males in census tract (%, numerical)                                                                       |
+| med_income         | Median income of census tract (\$, numerical)                                                                            |
 
 **(Table A1):** Variable Definitions
 
@@ -688,7 +698,7 @@ metrics_table %>% kable(digits = 3)
 **(Table C4):** Evaluating Model Performance
 
 ```{r}
-#| include: true
+#| include: false
 #| echo: false 
 
 
@@ -698,17 +708,36 @@ tidy(test) %>%
   kable(digits = 3)
 
 ```
+
 \newpage
+
 ## 6 References
 
-Ghandnoosh, N. (2023, October). One in five: Ending racial inequity in incarceration. The Sentencing Project. https://www.sentencingproject.org/reports/one-in-five-ending-racial-inequity-in-incarceration/
+Ghandnoosh, N. (2023, October). One in five: Ending racial inequity in
+incarceration. The Sentencing Project.
+https://www.sentencingproject.org/reports/one-in-five-ending-racial-inequity-in-incarceration/
 
-Princeton School of Public and International Affairs. (n.d.). Decrease in lead exposure in early childhood may be responsible for drop in crime rate. https://spia.princeton.edu/news/decrease-lead-exposure-early-childhood-may-be-responsible-drop-crime-rate
+Wallace, J. Princeton School of Public and International Affairs.
+(2017). Decrease in lead exposure in early childhood may be responsible
+for drop in crime rate.
+https://spia.princeton.edu/news/decrease-lead-exposure-early-childhood-may-be-responsible-drop-crime-rate
 
-Schneider, J. S. (2023). Neurotoxicity and outcomes from developmental lead exposure: Persistent or permanent? Environmental Health Perspectives, 131(8), 085002. https://doi.org/10.1289/EHP12371
+Schneider, J. S. (2023). Neurotoxicity and outcomes from developmental
+lead exposure: Persistent or permanent? Environmental Health
+Perspectives, 131(8), 085002. https://doi.org/10.1289/EHP12371
 
-Shulman, E. P., Steinberg, L. D., & Piquero, A. R. (2013). The age-crime curve in adolescence and early adulthood is not due to age differences in economic status. Journal of Youth and Adolescence, 42(6), 848–860. https://doi.org/10.1007/s10964-013-9950-4
+Shulman, E. P., Steinberg, L. D., & Piquero, A. R. (2013). The age-crime
+curve in adolescence and early adulthood is not due to age differences
+in economic status. Journal of Youth and Adolescence, 42(6), 848–860.
+https://doi.org/10.1007/s10964-013-9950-4
 
-Talayero, M. J., Robbins, C. R., Smith, E. R., & Santos-Burgoa, C. (2023). The association between lead exposure and crime: A systematic review. PLOS Global Public Health, 3(8), e0002177. https://doi.org/10.1371/journal.pgph.0002177
+Talayero, M. J., Robbins, C. R., Smith, E. R., & Santos-Burgoa, C.
+(2023). The association between lead exposure and crime: A systematic
+review. PLOS Global Public Health, 3(8), e0002177.
+https://doi.org/10.1371/journal.pgph.0002177
 
-Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G. (2019). blockCV: An R package for generating spatially or environmentally separated folds for k-fold cross-validation of species distribution models. Methods in Ecology and Evolution, 10(2), 225–232. https://doi.org/10.1111/2041-210X.13107
+Valavi, R., Elith, J., Lahoz-Monfort, J. J., & Guillera-Arroita, G.
+(2019). blockCV: An R package for generating spatially or
+environmentally separated folds for k-fold cross-validation of species
+distribution models. Methods in Ecology and Evolution, 10(2), 225–232.
+https://doi.org/10.1111/2041-210X.13107
